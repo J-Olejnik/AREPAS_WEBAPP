@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"> -->
+    <link rel="stylesheet" href="../static/style.css">
+    <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Nunito'>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <title>AREPAS</title>
+</head>
+<body>
+    <div id="menu">
+        <label id="menuBtn" class="hamburger">
+            <input type="checkbox">
+            <svg viewBox="0 0 32 32">
+              <path class="line line-top-bottom" d="M27 10 13 10C10.8 10 9 8.2 9 6 9 3.5 10.8 2 13 2 15.2 2 17 3.8 17 6L17 26C17 28.2 18.8 30 21 30 23.2 30 25 28.2 25 26 25 23.8 23.2 22 21 22L7 22"></path>
+              <path class="line" d="M7 16 27 16"></path>
+            </svg>
+        </label>
+        <div id="settingsBtn" class="menuItem">
+            <img src="../static/settings.svg" alt="Icon">
+        </div>
+    </div>
+    <div id="main">
+        <div id="heading">
+            <img id="spacer" class="logoClass" src="../static/lumcg.png" aria-hidden="true">
+            <h1>UNILATERAL UTO CLASSIFICATION</h1>
+            <img id="logo" class="logoClass" src="../static/lumcg.png">
+        </div>
+        
+        <!-- Drop or select an image -->
+        <div id="mainContainer">
+            <div id="imgInfo" class="centerFlex"></div>
+            <div id="imageContainer">
+                <div id="dropArea" class="imageBox" onclick="document.getElementById('fileInput').click();">
+                    <p>Drag and drop an image or click here to upload</p>
+                    <form id="uploadForm" action="/" method="post" enctype="multipart/form-data" style="display:none;">
+                        <input type="file" id="fileInput" name="file" accept="image/*" disabled multiple>
+                    </form>
+                </div>
+                <div id="gradCAMbox" class="imageBox">
+                    <p>Generated GradCAM will be displayed here</p>
+                </div>
+            </div>
+            <div id="btnContainer" class="centerFlex"></div>
+        </div>
+        <!-- Display messages -->
+        <div id="textBox" class="centerFlex"></div>
+    </div>
+    <!-- <script type="text/javascript" src="{{ url_for('static', filename='script.js') }}"></script> -->
+    <script type="text/javascript" src="../static/script.js"></script>
+</body>
+</html>

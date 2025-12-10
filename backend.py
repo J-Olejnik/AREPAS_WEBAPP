@@ -9,6 +9,7 @@ import io
 import os
 import threading
 import tempfile
+import argparse
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -23,9 +24,11 @@ model_loaded = False
 model_name = None
 
 def background_model_load(source):
-    """Background thread to load the model"""
+    """Background thread to load a model.\n
+    If the model is provided as bytes via API, it is temporarily saved and then loaded. \n
+    Otherwise, it is loaded directly from the file path on disk."""
     global model, model_error, model_loaded, model_name
-
+    
     try:
         if isinstance(source, (bytes, bytearray)):
             with tempfile.NamedTemporaryFile(suffix=".keras", delete=False) as tmp:
@@ -33,9 +36,10 @@ def background_model_load(source):
                 tmp_path = tmp.name
             model = load_model(tmp_path)
             os.remove(tmp_path)
-        elif isinstance(source, str) and os.path.exists(f'static/{source}'):
-            model_name = source
-            model = load_model(f'static/{source}')
+        elif isinstance(source, str) and os.path.exists(source):
+            model_name = os.path.basename(source)
+            print(source, model_name)
+            model = load_model(source)
         else:
             raise ValueError("Invalid model source")
         model_loaded = True
@@ -149,7 +153,11 @@ def open_browser(port):
     webbrowser.open(f'http://127.0.0.1:{port}')
 
 if __name__ == "__main__":
-    threading.Thread(target=background_model_load, args=('testModel.keras',), daemon=True).start()
-    port=5000
-    open_browser(port)
-    app.run(port=port)
+    parser = argparse.ArgumentParser(description="AREPAS GUI")
+    parser.add_argument("--model", type=str, required=True, help="Path to the base model")
+    parser.add_argument("--port", type=int, required=False, default=5000, help="Port to run the app on")
+    args = parser.parse_args()
+
+    threading.Thread(target=background_model_load, args=(args.model,), daemon=True).start()
+    open_browser(args.port)
+    app.run(port=args.port)

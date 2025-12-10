@@ -1,0 +1,5 @@
+# Ignore cached files
+__pycache__/
+
+# Ignore model weights
+static/*.keras

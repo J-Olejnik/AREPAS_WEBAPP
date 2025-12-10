@@ -63,12 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    settingsBtn.addEventListener('click', () => toggleSettingsPopup());
+
     // Methods to run once the main page loads
-    establishListeners();
+    establishMainListeners();
     checkModelStatus();
 });
 
-function establishListeners() {
+function establishMainListeners() {
     ['dragenter', 'dragover'].forEach(eventName => {
         dropArea.addEventListener(eventName, (e) => {
             e.preventDefault();
@@ -95,8 +97,6 @@ function establishListeners() {
         inputData = e.target.files;
         handleImages(inputData);
     });
-
-    settingsBtn.addEventListener('click', () => toggleSettingsPopup());
 }
 
 function addButtons() {
@@ -360,7 +360,7 @@ async function loadPage(pageName, targetElementId = 'main') {
     const element = document.getElementById(targetElementId);
     if (pageName === 'main') {
         element.innerHTML = mainContent;
-        establishListeners();
+        establishMainListeners();
     } else {
         const response = await fetch(`${pageName}.html`);
         element.innerHTML = await response.text();

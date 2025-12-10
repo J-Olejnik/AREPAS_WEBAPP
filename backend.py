@@ -10,6 +10,7 @@ import os
 import threading
 import tempfile
 import argparse
+import webbrowser
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -148,10 +149,6 @@ def load_page(pageName):
     except FileNotFoundError:
         return "Page not found", 404
 
-def open_browser(port):
-    import webbrowser
-    webbrowser.open(f'http://127.0.0.1:{port}')
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AREPAS GUI")
     parser.add_argument("--model", type=str, required=True, help="Path to the base model")
@@ -159,5 +156,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     threading.Thread(target=background_model_load, args=(args.model,), daemon=True).start()
-    open_browser(args.port)
+    threading.Timer(1, webbrowser.open, args=[f"http://127.0.0.1:{args.port}"]).start()
+
     app.run(port=args.port)

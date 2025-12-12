@@ -19,35 +19,34 @@ app = Flask(__name__)
 # Initialize GradCAM
 explainer = GradCAM()
 
-# Global model and error variables
-model = None
-model_error = None
-model_loaded = False
-model_name = None
+# Global variables
+app.config["model"] = None
+app.config["model_error"] = None
+app.config["model_loaded"] = False
+app.config["model_name"] = None
+app.config["db_path"] = None
 
 def background_model_load(source):
     """Background thread to load a model.\n
     If the model is provided as bytes via API, it is temporarily saved and then loaded. \n
     Otherwise, it is loaded directly from the file path on disk."""
-    global model, model_error, model_loaded, model_name
     
     try:
         if isinstance(source, (bytes, bytearray)):
             with tempfile.NamedTemporaryFile(suffix=".keras", delete=False) as tmp:
                 tmp.write(source)
                 tmp_path = tmp.name
-            model = load_model(tmp_path)
+            app.config["model"] = load_model(tmp_path)
             os.remove(tmp_path)
         elif isinstance(source, str) and os.path.exists(source):
-            model_name = os.path.basename(source)
-            print(source, model_name)
-            model = load_model(source)
+            app.config["model_name"] = os.path.basename(source)
+            app.config["model"] = load_model(source)
         else:
             raise ValueError("Invalid model source")
-        model_loaded = True
+        app.config["model_loaded"] = True
     except Exception as e:
-        model_error = str(e)
-        model_loaded = False
+        app.config["model_error"] = str(e)
+        app.config["model_loaded"] = False
 
 def encode_image_base64(pil_image, format="JPEG"):
     """Encode a PIL image to a base64 string."""
@@ -66,15 +65,14 @@ def home():
 def model_status():
     """Endpoint to check model status"""
     return jsonify({
-        'status': model_loaded,
-        'error': model_error,
-        'name': model_name
+        'status': app.config["model_loaded"],
+        'error': app.config["model_error"],
+        'name': app.config["model_name"]
     })
 
 @app.route('/model-reload', methods=['POST'])
 def model_reload():
     """Endpoint to reload the model"""
-    global model_loaded, model_name
 
     # Check if file is in the request
     if 'model_data' not in request.files:
@@ -84,8 +82,8 @@ def model_reload():
         file = request.files['model_data']
         model_bytes = file.read()
 
-        model_name = request.form.get('filename')
-        model_loaded = False
+        app.config["model_name"] = request.form.get('filename')
+        app.config["model_loaded"] = False
         threading.Thread(target=background_model_load, args=(model_bytes,), daemon=True).start()
 
         return jsonify({'status': 'Model data received successfully'}), 200
@@ -114,7 +112,7 @@ def predict():
         batch_images = np.stack(img_arrays)
         
         # Predict entire batch at once
-        predictions = model.predict(batch_images)
+        predictions = app.config["model"].predict(batch_images)
 
         # Process results for each image in the batch
         results = []
@@ -124,7 +122,7 @@ def predict():
             # Generate Grad-CAM for this specific image
             img_array = np.expand_dims(img_arrays[i], axis=0)
 
-            gradcam = explainer.explain((img_array, None), model, class_index=0)
+            gradcam = explainer.explain((img_array, None), app.config["model"], class_index=0)
             gradcam = encode_image_base64(Image.fromarray(gradcam), format="JPEG")
             
             results.append({
@@ -138,15 +136,12 @@ def predict():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-# @app.route('/description', methods=['GET', 'POST'])
-# def handleDescription():
-#     return jsonify()
 
 @app.route('/load-database')
 def load_db():
+    """Endpoint to load the database"""
     try:
-        conn = sqlite3.connect(f'AREPAS_GUI\static\AREPAS_small.db')
+        conn = sqlite3.connect(app.config["db_path"])
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
 
@@ -168,8 +163,11 @@ def load_page(pageName):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AREPAS GUI")
     parser.add_argument("--model", type=str, required=True, help="Path to the base model")
+    parser.add_argument("--db", type=str, required=True, help="Path to the database")
     parser.add_argument("--port", type=int, required=False, default=5000, help="Port to run the app on")
     args = parser.parse_args()
+
+    app.config["db_path"]=args.db
 
     threading.Thread(target=background_model_load, args=(args.model,), daemon=True).start()
     threading.Timer(1, webbrowser.open, args=[f"http://127.0.0.1:{args.port}"]).start()

@@ -6,6 +6,6 @@ Simple, Flask-based, deep learning and explainable AI prediction web GUI made fo
 ## Packages used
 Tensorflow 2.18.1  
 tf-explain 0.3.1 (modified)  
-Flask 2.2.5
-numpy 2.3.5
+Flask 2.2.5  
+numpy 2.3.5  
 Pillow 12.0.0  

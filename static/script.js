@@ -430,8 +430,7 @@ async function loadDatabase() {
     const response = await fetch("/load-database");
     const data = await response.json();
 
-    const tbody = document.getElementById("tableBody");
-    tbody.innerHTML = "";
+    tableBody.innerHTML = "";
 
     data.forEach(row => {
         // convert confidence value into percent string
@@ -448,6 +447,6 @@ async function loadDatabase() {
             <td>${row.status}</td>
             <td>${row.annotation}</td>
         `;
-        tbody.appendChild(tr);
+        tableBody.appendChild(tr);
     });
 }

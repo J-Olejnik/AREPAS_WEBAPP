@@ -1,6 +1,7 @@
 const menuItems = [
     { text: 'Home', file: 'main'},
     { text: 'Instructions', file: 'instructions'},
+    { text: 'Database', file: 'database'},
     { text: 'About', file: 'about'},
     { text: 'Settings', file: 'settings'}
 ];
@@ -100,14 +101,14 @@ function establishMainListeners() {
 }
 
 function addButtons() {
-    Object.assign(btnContainer.style, {marginTop: '5px'});
 
     btnContainer.innerHTML = `
-                <div id="imgBtns">
+                <div id="imgBtns" class="btnContainer">
                     <button type="button" id="prevBtn" onclick="controlClick(this.id)" disabled>Prev</button>
                     <button type="button" id="nextBtn" onclick="controlClick(this.id)" disabled>Next</button>
                 </div>
-                <div id="gradcamBtns">
+                <div id="gradcamBtns" class="btnContainer">
+                    <button type="button" id="save" onclick="controlClick(this.id)" disabled>Save to database</button>
                     <button type="button" id="download" onclick="controlClick(this.id)" disabled> Download <i class="fa-solid fa-download"></i></button>
                 </div>`;
 
@@ -364,6 +365,10 @@ async function loadPage(pageName, targetElementId = 'main') {
     } else {
         const response = await fetch(`${pageName}.html`);
         element.innerHTML = await response.text();
+
+        if(pageName === 'database') {
+            loadDatabase();
+        }
     }
 }
 
@@ -419,4 +424,30 @@ async function reloadModel(model) {
     }
 
     checkModelStatus();
+}
+
+async function loadDatabase() {
+    const response = await fetch("/load-database");
+    const data = await response.json();
+
+    const tbody = document.getElementById("tableBody");
+    tbody.innerHTML = "";
+
+    data.forEach(row => {
+        // convert confidence value into percent string
+        const conf = row.predicted_class === 1 ? row.confidence : (1 - row.confidence);
+        const confPct = (conf * 100).toFixed(1) + "%";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${row.pID}</td>
+            <td>${row.date_of_prediction}</td>
+            <td>${row.predicted_class}</td>
+            <td>${confPct}</td>
+            <td>${row.reviewer}</td>
+            <td>${row.status}</td>
+            <td>${row.annotation}</td>
+        `;
+        tbody.appendChild(tr);
+    });
 }

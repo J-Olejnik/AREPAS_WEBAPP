@@ -11,6 +11,7 @@ import threading
 import tempfile
 import argparse
 import webbrowser
+import sqlite3
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -141,6 +142,21 @@ def predict():
 # @app.route('/description', methods=['GET', 'POST'])
 # def handleDescription():
 #     return jsonify()
+
+@app.route('/load-database')
+def load_db():
+    try:
+        conn = sqlite3.connect(f'AREPAS_GUI\static\AREPAS_small.db')
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM predictions ORDER BY pID ASC")
+        rows = cur.fetchall()
+
+        conn.close()
+        return jsonify([dict(row) for row in rows])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     
 @app.route('/<pageName>.html')
 def load_page(pageName):

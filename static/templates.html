@@ -1,0 +1,96 @@
+<!-- Main page templates -->
+<template id="instructions-template">
+    <div id="textBox"><p><strong>*Place for Instructions*</strong></p></div>
+</template>
+
+<template id="database-template">
+    <div id="tableContainer">
+        <table class="db-table">
+            <thead>
+                <tr>
+                    <th style="width: 45px;">pID</th>
+                    <th style="width: 120px;">Date of prediction</th>
+                    <th style="width: 100px;">Predicted class</th>
+                    <th style="width: 110px;">Confidence</th>
+                    <th style="width: 110px;">Reviewer</th>
+                    <th style="width: 110px;">Status</th>
+                    <th class="annotation-col">Annotation</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</template>
+
+<template id="about-template">
+    <div id="textBox"><p><strong>*Place for Project description if needed*</strong></p></div>
+</template>
+
+<template id="imgBtn-template">
+    <div id="imgBtns" class="btnContainer">
+        <button type="button" id="prevBtn" onclick="controlClick(this.id)" disabled>Prev</button>
+        <button type="button" id="nextBtn" onclick="controlClick(this.id)" disabled>Next</button>
+    </div>
+    <div id="gradcamBtns" class="btnContainer">
+        <button type="button" id="saveBtn" onclick="controlClick(this.id)" disabled> Save to DB <i class="fa-solid fa-database"></i></button>
+        <button type="button" id="downloadBtn" onclick="controlClick(this.id)" disabled> Download <i class="fa-solid fa-download"></i></button>
+    </div>
+</template>
+
+<!-- Popups -->
+<template id="settings-popup-template">
+    <div id="settings-popup" class="popup">
+        <div class="popup-item">
+            <strong>Current model: </strong> <span data-field="modelName"></span>
+        </div>
+        <div class="popup-item">
+            <div id="modelBtnContainer" class="centerFlex">
+                <button type="button" id="changeModelBtn" onclick="document.getElementById('modelFileInput').click()">Pick new model</button>
+                <form id="modelReloadForm" action="/" method="post" enctype="multipart/form-data" style="display:none;">
+                    <input type="file" id="modelFileInput" accept=".keras">
+                </form>
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="save-popup-template">
+    <div id="save-popup" class="popup">
+        <span class="popup-close" onclick="controlClick('saveBtn')">&times;</span>
+        <div class="popup-item">
+            <form class="form-container">
+                <div class="param-grid">
+                    <div class="param">
+                        <span class="label">pID:</span><span data-field="pID"></span>
+                    </div>
+
+                    <div class="param">
+                        <span class="label">Reviewer:</span><span data-field="reviewer">Admin</span>
+                    </div>
+
+                    <div class="param">
+                        <span class="label">Confidence:</span><span data-field="confidence"></span>
+                    </div>
+
+                    <div class="param">
+                        <span class="label">Predicted class:</span><span data-field="predClass"></span>
+                    </div>
+                </div>
+                <div class="param">
+                    <span class="label">Status:</span>
+                    <select class="status-select" data-field="status-select">
+                        <option value="Open">Open</option>
+                        <option value="Reviewed">Reviewed</option>
+                        <option value="Flagged">Flagged</option>
+                    </select>
+                </div>
+                <textarea id="description" placeholder="Annotations..." data-field="description"></textarea>
+            </form>
+        </div>
+        <div class="btnContainer">
+            <div class="popup-item">
+                <button type="button" onclick="saveDatabase()">Save</button>
+            </div>
+        </div>
+    </div>
+</template>

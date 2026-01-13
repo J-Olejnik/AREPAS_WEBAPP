@@ -111,7 +111,7 @@ body {
 }
 
 /* Main app body */
-#main {
+.colFlex {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -153,7 +153,11 @@ h1 {
   margin-left: auto;
 }
 
-#mainContainer {
+#dataContainer {
+    width: 100%;
+}
+
+#outImgContainer {
     width: 90%;
     background-color: white;
     border: 3px solid black;
@@ -174,14 +178,15 @@ h1 {
     text-align: center;
 }
 
-#imageContainer {
+#innImgContainer {
     display: flex;
     align-items: center;
     gap: 15px;
-    --height: 95%; 
+    --height: 95%;
+    margin-bottom: 5px; 
 }
 
-#imageContainer::before {
+#innImgContainer::before {
     content: '';
     position: absolute;
     width: 3px;
@@ -223,7 +228,6 @@ h1 {
     display: flex;
     gap: 5px;
     justify-content: center;
-    margin-top: 5px;
 }
 
 button {
@@ -290,25 +294,85 @@ circle {
     }
 }
    
-.settings-popup {
+.popup {
   position: absolute;      
-  bottom: 25px;            
-  left: 10px;
-  width: 250px;
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  padding: 10px;
+  padding: 40px 10px 10px 10px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
   z-index: 1000;
 }
 
 .popup-item {
-  align-items: center;
   font-size: 17px;
   color: black;
+}
+
+.popup-close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 30px;
+  font-weight: bold;
+  color: black;
+  line-height: 20px;
+  cursor: default;
+}
+
+#settings-popup {
+  bottom: 25px;            
+  left: 10px;
+  width: 250px;
+}
+
+#save-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 19px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    border: 2px solid black;
+    padding: 10px;
+}
+
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 19px 10px;
+  width: 100%;
+}
+
+.param {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 5px;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.status-select {
+  font-size: 15px;
+}
+
+#description {
+  min-width: 300px;  
+  min-height: 120px;
+  font-size: 15px;
 }
 
 /* Database table */
@@ -353,7 +417,7 @@ circle {
   z-index: 2;
   border-bottom: 2px solid black;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: black;
   background: rgb(230, 230, 230);
   padding-top: 0px;

@@ -12,6 +12,7 @@ import tempfile
 import argparse
 import webbrowser
 import sqlite3
+from datetime import datetime
 
 # Initialize the Flask app
 app = Flask(__name__)
@@ -61,7 +62,7 @@ def home():
     """Render the home page"""
     return render_template('index.html')
 
-@app.route('/model-status')
+@app.route('/api/model-status')
 def model_status():
     """Endpoint to check model status"""
     return jsonify({
@@ -70,7 +71,7 @@ def model_status():
         'name': app.config["model_name"]
     })
 
-@app.route('/model-reload', methods=['POST'])
+@app.route('/api/model-reload', methods=['POST'])
 def model_reload():
     """Endpoint to reload the model"""
 
@@ -91,7 +92,7 @@ def model_reload():
         print(e)
         return jsonify({'error': str(e)}), 500
     
-@app.route('/predict', methods=['POST'])
+@app.route('/api/predict', methods=['POST'])
 def predict():
     """Handle image prediction via POST request"""
     try:
@@ -103,8 +104,11 @@ def predict():
     
         # Collect all images into a single batch
         img_arrays = []
+        images = []
+
         for file in files:
             img = Image.open(file).convert('L')
+            images.append(img)
             img_array = img_to_array(img)
             img_arrays.append(img_array.astype("float32") / 255.0)
         
@@ -132,12 +136,18 @@ def predict():
                 }
             })
         
+        # Cleanup
+            for img in images:
+                img.close()
+            del img_arrays
+            del batch_images
+            
         return jsonify(results)
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/load-database')
+@app.route('/api/load-database')
 def load_db():
     """Endpoint to load the database"""
     try:
@@ -152,13 +162,44 @@ def load_db():
         return jsonify([dict(row) for row in rows])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-    
-@app.route('/<pageName>.html')
-def load_page(pageName):
+
+@app.route('/api/save-to-database', methods=['POST'])
+def save_to_db():
+    """Save new data to database via POST request"""
     try:
-        return render_template(f'{pageName}.html')
-    except FileNotFoundError:
-        return "Page not found", 404
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        conn = sqlite3.connect(app.config["db_path"])
+        cur = conn.cursor()
+
+        cur.execute("""
+            INSERT INTO predictions (
+                pID,
+                date_of_prediction,
+                predicted_class,
+                prediction,
+                reviewer,
+                status,
+                annotation
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data["pID"],
+            datetime.now().strftime("%Y-%m-%d %H:%M"),
+            int(data["predicted_class"]),
+            float(data["prediction"]),
+            data["reviewer"][:50],
+            data["status"] if data["status"] in ["Open", "Reviewed", "Flagged"] else "Open",
+            data["annotation"][:500]
+        ))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({'status': 'New data saved successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AREPAS GUI")

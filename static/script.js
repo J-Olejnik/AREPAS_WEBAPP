@@ -1,15 +1,73 @@
 const menuItems = [
-    { text: 'Home', file: 'main'},
-    { text: 'Instructions', file: 'instructions'},
-    { text: 'Database', file: 'database'},
-    { text: 'About', file: 'about'},
-    { text: 'Settings', file: 'settings'}
+    { text: 'Home', name: 'main'},
+    { text: 'Instructions', name: 'instructions'},
+    { text: 'Database', name: 'database'},
+    { text: 'About', name: 'about'},
+    { text: 'Settings', name: 'settings'}
 ];
 
-let typingInProgress = false;
-let mainContent = document.getElementById('main').innerHTML;
-let inputData = null;
-let responseData = null;
+const actions = {
+    // Text typing
+    typingInProgress: false,
+
+    // Buttons
+    imageBtnsExist: false,
+
+    // Model reload
+    lastStatus: null,
+    modelStatusChecking: false
+};
+
+const data = {
+    currentId: 0,
+    inputData: null,
+    imageData: null,
+    responseData: null,
+    mainContent: document.getElementById('dataContainer').innerHTML,
+    modelName: null,
+
+    resetState() {
+        this.currentId = 0;
+        this.imageData = null;
+        this.responseData = null;
+    }
+}
+
+const patient = {
+    get image() {
+        return data.imageData[data.currentId];
+    },
+
+    get pID() {
+        return data.inputData[data.currentId].name.substring(0, data.inputData[data.currentId].name.lastIndexOf("."));
+    },
+
+    get gradCAM() {
+        return data.responseData[data.currentId].images.gradcam;
+    },
+
+    get prediction() {
+        return data.responseData[data.currentId].predictions[0];
+    },
+
+    get confidence() {
+        const conf = this.predClass === 1 ? this.prediction : (1 - this.prediction);
+        return (conf * 100).toFixed(1);
+    },
+
+    get predClass() {
+        return data.responseData[data.currentId].predictions[1];
+    },
+
+    toJSON() {
+        return {
+            pID: this.pID,
+            prediction: this.prediction,
+            confidence: this.confidence,
+            predClass: this.predClass
+        };
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const menuCheckbox = menuBtn.querySelector('input');
@@ -38,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     menuItemEl.appendChild(textEl);
                     menuItemEl.addEventListener('mouseover', () => menuItemEl.classList.add('hover'));
                     menuItemEl.addEventListener('mouseout', () => menuItemEl.classList.remove('hover'));
-                    menuItemEl.addEventListener('click', () => loadPage(item.file));
+                    menuItemEl.addEventListener('click', () => setTemplate(item));
         
                     menuContainer.appendChild(menuItemEl);
                 });
@@ -60,15 +118,16 @@ document.addEventListener('DOMContentLoaded', () => {
             settingsBtn.removeChild(settingsBtn.querySelector('span'));
             const newBtn = settingsBtn.cloneNode(true); // delete listeners (hover)
             settingsBtn.parentNode.replaceChild(newBtn, settingsBtn);
-            settingsBtn.addEventListener('click', () => toggleSettingsPopup());
+            settingsBtn.addEventListener('click', () => controlClick(settingsBtn.id));
         }
     });
 
-    settingsBtn.addEventListener('click', () => toggleSettingsPopup());
+    settingsBtn.addEventListener('click', () => controlClick(settingsBtn.id));
 
     // Methods to run once the main page loads
     establishMainListeners();
     checkModelStatus();
+    loadTemplates();
 });
 
 function establishMainListeners() {
@@ -88,95 +147,111 @@ function establishMainListeners() {
         }, false);
     });
 
-    dropArea.addEventListener('drop', (e) => {
-        inputData = e.dataTransfer.files;
-        fileInput.files = inputData;
-        handleImages(inputData);
-    });
+    const handleFileSource = fileList => {
+        const files = [...fileList].filter(f => f.type.startsWith('image/'));
+        if (!files.length) return;
+        data.inputData = files;
+        handleImages(files);
+    };
 
-    fileInput.addEventListener('change', (e) => {
-        inputData = e.target.files;
-        handleImages(inputData);
-    });
+    dropArea.addEventListener('drop', e =>
+        handleFileSource(e.dataTransfer.files)
+    );
+
+    fileInput.addEventListener('change', e =>
+        handleFileSource(e.target.files)
+    );
 }
 
-function addButtons() {
+async function loadTemplates() {
+    const res = await fetch('/static/templates.html');
+    const container = document.createElement('div');
 
-    btnContainer.innerHTML = `
-                <div id="imgBtns" class="btnContainer">
-                    <button type="button" id="prevBtn" onclick="controlClick(this.id)" disabled>Prev</button>
-                    <button type="button" id="nextBtn" onclick="controlClick(this.id)" disabled>Next</button>
-                </div>
-                <div id="gradcamBtns" class="btnContainer">
-                    <button type="button" id="save" onclick="controlClick(this.id)" disabled>Save to database</button>
-                    <button type="button" id="download" onclick="controlClick(this.id)" disabled> Download <i class="fa-solid fa-download"></i></button>
-                </div>`;
-
-    Object.assign(download.style, {fontSize: '17px', width: '135px'});
+    container.innerHTML = await res.text();
+    document.body.append(container);
 }
-
-let currentId = 0;
 
 function controlClick(id) {
 
-    const reader = new FileReader();
-
     switch(id) {
-        case 'prevBtn':
+        case 'prevBtn': {
             if (!prevBtn.disabled) {
-                currentId--;
-                fname = inputData[currentId].name.substring(0, inputData[currentId].name.lastIndexOf("."));
-                pID.innerHTML = `Patient ID: ${fname}`;
-                reader.onload = (event) => {
-                    displayImage(dropArea, event.target.result)
-                };
-                reader.readAsDataURL(inputData[currentId]);
+                data.currentId--;
+                pID.innerHTML = `Patient ID: ${patient.pID}`;
+                
+                displayImage(dropArea, `${patient.image}`);
+                displayImage(gradCAMbox, `${patient.gradCAM}`);
 
-                displayImage(gradCAMbox, `${responseData[currentId].images.gradcam}`);
+                textBox.innerHTML = `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
+                <p><strong>Predicted class:</strong> ${patient.predClass}</p>
+                <p><strong>Confidence:</strong> ${patient.confidence}%</p>`;
 
-                textBox.innerHTML = `<p><strong>Raw prediction for the positive class:</strong> ${responseData[currentId].predictions[0]}</p>
-                <p><strong>Predicted class:</strong> ${responseData[currentId].predictions[1]}</p>`;
-
-                if (!currentId)
+                if (!data.currentId)
                     disableElement('prevBtn', true);
 
-                if (currentId === inputData.length-2)
+                if (data.currentId === data.inputData.length-2)
                     disableElement('nextBtn', false);
             }
             break;
-
-        case 'nextBtn' :
+        }
+        case 'nextBtn' : {
             if (!nextBtn.disabled){
-                currentId++;
-                fname = inputData[currentId].name.substring(0, inputData[currentId].name.lastIndexOf("."));
-                pID.innerHTML = `Patient ID: ${fname}`;
-                reader.onload = (event) => {
-                    displayImage(dropArea, event.target.result)
-                };
-                reader.readAsDataURL(inputData[currentId]);
+                data.currentId++;
+                pID.innerHTML = `Patient ID: ${patient.pID}`;
+                
+                displayImage(dropArea, `${patient.image}`);
+                displayImage(gradCAMbox, `${patient.gradCAM}`);
 
-                displayImage(gradCAMbox, `${responseData[currentId].images.gradcam}`);
+                textBox.innerHTML = `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
+                <p><strong>Predicted class:</strong> ${patient.predClass}</p>
+                <p><strong>Confidence:</strong> ${patient.confidence}%</p>`;
 
-                textBox.innerHTML = `<p><strong>Raw prediction for the positive class:</strong> ${responseData[currentId].predictions[0]}</p>
-                <p><strong>Predicted class:</strong> ${responseData[currentId].predictions[1]}</p>`;
-
-                if (currentId)
+                if (data.currentId)
                     disableElement('prevBtn', false);
 
-                if (currentId === inputData.length-1)
+                if (data.currentId === data.inputData.length-1)
                     disableElement('nextBtn', true);
             }
             break;
-
-        case 'download':
+        }
+        case 'downloadBtn': {
             const link = document.createElement('a');
-            link.href = `${responseData[currentId].images.gradcam}`;
-            fname = inputData[currentId].name.substring(0, inputData[currentId].name.lastIndexOf("."));
-            link.download = `GradCAM_${fname}.jpg`;
+            link.href = `${patient.gradCAM}`;
+            link.download = `GradCAM_${patient.pID}.jpg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             break;
+        }
+        case 'saveBtn': {
+            if (checkExisting('#save-popup')) break;
+
+            const popup = document.getElementById('save-popup-template').content.cloneNode(true);
+            popup.querySelectorAll('[data-field]').forEach(el => {
+                const key = el.dataset.field;
+
+                if (key in patient.toJSON()) {
+                    el.textContent = patient.toJSON()[key];
+                }
+            });
+            main.appendChild(popup);
+            break;
+        }
+        case 'settingsBtn': {
+            if (checkExisting('#settings-popup')) break;
+
+            const popup = document.getElementById('settings-popup-template').content.cloneNode(true);
+            popup.querySelector('[data-field="modelName"]').textContent = data.modelName;
+            main.appendChild(popup);
+
+            modelFileInput.addEventListener('change', (e) => {
+                    newModel = e.target.files[0];
+                    main.querySelector('[data-field="modelName"]').textContent = data.modelName;
+                    reloadModel(newModel);
+                    controlClick('settingsBtn');
+                });
+            break;
+        }
     }
 }
 
@@ -187,8 +262,30 @@ function disableElement(elemId, state) {
 
 async function handleImages(files) {
     if (files.length === 0) return;
+
+    data.resetState();
     
-    const f = files[0];
+    if (actions.imageBtnsExist) {
+        disableElement('prevBtn', true);
+        disableElement('nextBtn', true);
+        disableElement('saveBtn', true);
+        disableElement('downloadBtn', true);
+    }
+
+    const formData = new FormData();
+    data.imageData ??= [];
+    data.imageData.length = 0;
+
+    [...files].forEach((file, index) => {
+        formData.append('files', file);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            data.imageData.push(reader.result);
+            if (index === 0) displayImage(dropArea, data.imageData[data.currentId]);
+        };
+        reader.readAsDataURL(file);
+    });
     
     // Display info, new image and buttons
     Object.assign(imgInfo.style, {
@@ -198,26 +295,17 @@ async function handleImages(files) {
         fontWeight: '600'
     });
 
-    document.querySelector('#imageContainer').style.setProperty('--height', '85%');
+    document.querySelector('#innImgContainer').style.setProperty('--height', '85%');
     
-    let fName = f.name.substring(0, f.name.lastIndexOf("."));
-    imgInfo.innerHTML = `<p id="pID">Patient ID: ${fName}</p><p id="GradCAMlbl">GradCAM</p>`
+    imgInfo.innerHTML = `<p id="pID">Patient ID: ${patient.pID}</p><p id="GradCAMlbl">GradCAM</p>`
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        displayImage(dropArea, event.target.result)
-    };
-    reader.readAsDataURL(f);
-
-    addButtons();
-    
-    // Submit the form, await the response and display loading animation
-    const formData = new FormData();
-
-    for (const file of files) {
-        formData.append('files', file);
+    if (!actions.imageBtnsExist) {
+        const template = document.getElementById(`imgBtn-template`).content.cloneNode(true);
+        document.getElementById("btnContainer").appendChild(template);
+        actions.imageBtnsExist = true;
     }
 
+    // Display loading animation, submit the form and await the response
     loadingAnimation();
 
     try {
@@ -225,25 +313,28 @@ async function handleImages(files) {
         typeText('Processing...');
 
         // Send POST request
-        const response = await fetch('/predict', {
+        const res = await fetch('/api/predict', {
             method: 'POST',
             body: formData
         });
 
         // Parse response
-        responseData = await response.json();
+        data.responseData = await res.json();
 
         // Display GradCAM
-        disableElement('download', false);
-        displayImage(gradCAMbox, `${responseData[0].images.gradcam}`);
+        disableElement('saveBtn', false);
+        disableElement('downloadBtn', false);
+        displayImage(gradCAMbox, `${patient.gradCAM}`);
 
         if (files.length > 1)
             disableElement('nextBtn', false);
 
-        // textBox.innerHTML = `<p><strong>Raw prediction for the positive class:</strong> ${responseData[0].predictions[0]}</p>
-        // <p><strong>Predicted class:</strong> ${responseData[0].predictions[1]}</p>`;
-        typeText(`<p><strong>Raw prediction for the positive class:</strong> ${responseData[0].predictions[0]}</p>
-        <p><strong>Predicted class:</strong> ${responseData[0].predictions[1]}</p>`, true);
+        // textBox.innerHTML = `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
+        // <p><strong>Predicted class:</strong> ${patient.predClass}</p>
+        // <p><strong>Confidence:</strong> ${patient.confidence}%</p>`;
+        typeText(`<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
+        <p><strong>Predicted class:</strong> ${patient.predClass}</p>
+        <p><strong>Confidence:</strong> ${patient.confidence}%</p>`, true);
 
     } catch (error) {
         // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
@@ -251,7 +342,7 @@ async function handleImages(files) {
     }
 
     // Save main content if user changes page
-    mainContent = document.getElementById('main').innerHTML;
+    data.mainContent = document.getElementById('dataContainer').innerHTML;
 }
 
 function displayImage(element, uri) {
@@ -285,36 +376,32 @@ function loadingAnimation() {
     }
 }
 
-let lastStatus = null;
-let modelStatusChecking = false;
-let modelName = null;
-
 async function checkModelStatus() {
-    if (modelStatusChecking) return;
+    if (actions.modelStatusChecking) return;
 
-    modelStatusChecking = true;
+    actions.modelStatusChecking = true;
     try {
-        const response = await fetch('/model-status');
-        const data = await response.json();
-        modelName = data.name;
+        const res = await fetch('/api/model-status');
+        const resData = await res.json();
+        data.modelName = resData.name;
         
-        if (data.status !== lastStatus) {
-            if (data.status) {
+        if (resData.status !== actions.lastStatus) {
+            if (resData.status) {
                 disableElement('fileInput', false);
                 //textBox.innerHTML = '<p>Model is ready!</p>';
                 typeText('Model is ready!');
-                lastStatus = true;
+                actions.lastStatus = true;
             } else {
-                // textBox.innerHTML = data.error 
-                //     ? `<p><strong>Error:</strong> ${data.error}</p>`
+                // textBox.innerHTML = resData.error 
+                //     ? `<p><strong>Error:</strong> ${resData.error}</p>`
                 //     : '<p>Model is loading...</p>';
                 disableElement('fileInput', true);
-                data.error ? typeText(`<strong>Error:</strong> ${data.error}`) : typeText('Model is loading...');
-                lastStatus = data.error ? null : false;
+                resData.error ? typeText(`<strong>Error:</strong> ${resData.error}`) : typeText('Model is loading...');
+                actions.lastStatus = resData.error ? null : false;
             }
         }
         // If not loaded, retry after a delay
-        if (!data.status && !data.error) {
+        if (!resData.status && !resData.error) {
             setTimeout(checkModelStatus, 2000);
         }
     
@@ -323,19 +410,19 @@ async function checkModelStatus() {
        typeText('<strong>Error:</strong> Unable to check model status');
 
     } finally {
-        modelStatusChecking = false;
+        actions.modelStatusChecking = false;
     }
 }
 
 function typeText(text, multiple = false) {
     // Prevent multiple typing sessions
-    if (typingInProgress) return;
+    if (actions.typingInProgress) return;
 
     // Reset text and index in non append mode
     textBox.innerHTML = '';
 
     let index = 0;
-    typingInProgress = true;
+    actions.typingInProgress = true;
 
     function animateTyping() {
         if (index <= text.length) {
@@ -345,65 +432,45 @@ function typeText(text, multiple = false) {
             if (index <= text.length) {
                 setTimeout(animateTyping, 20);
             } else {
-                typingInProgress = false;
+                actions.typingInProgress = false;
             }
         }
 
         // Save main content if user changes page
-        mainContent = document.getElementById('main').innerHTML;
+        data.mainContent = document.getElementById('dataContainer').innerHTML;
     }
 
     // Start animation
     animateTyping();
 }
 
-async function loadPage(pageName, targetElementId = 'main') {
+async function setTemplate(item, targetElementId = 'dataContainer') {
+    const heading = document.getElementById("heading").querySelector("h1");
     const element = document.getElementById(targetElementId);
-    if (pageName === 'main') {
-        element.innerHTML = mainContent;
+    
+    if (item.name === 'main') {
+        heading.textContent = "UNILATERAL UTO CLASSIFICATION";
+        element.innerHTML = data.mainContent;
         establishMainListeners();
     } else {
-        const response = await fetch(`${pageName}.html`);
-        element.innerHTML = await response.text();
+        const template = document.getElementById(`${item.name}-template`).content.cloneNode(true);
+        heading.textContent = item.text;
+        element.replaceChildren(template);
 
-        if(pageName === 'database') {
+        if(item.name === 'database') {
             loadDatabase();
         }
     }
 }
 
-function toggleSettingsPopup() {
-  const existingPopup = document.querySelector('.settings-popup');
+function checkExisting(id) {
+    const existingPopup = document.querySelector(id);
 
-  if (existingPopup) {
-    main.removeChild(existingPopup);
-    return;
-  }
+    if (existingPopup) {
+        main.removeChild(existingPopup);
+    }
 
-  const popup = document.createElement('div');
-  popup.className = 'settings-popup';
-  popup.innerHTML = `
-        <div class="popup-item">
-                <strong>Current model: </strong> <span id="modelNameTxt"></span>
-        </div>
-        <div class="popup-item">
-            <div id="modelBtnContainer" class="centerFlex">
-                <button type="button" id="changeModelBtn" onclick="document.getElementById('modelFileInput').click()">Pick new model</button>
-                <form id="modelReloadForm" action="/" method="post" enctype="multipart/form-data" style="display:none;">
-                    <input type="file" id="modelFileInput" accept=".keras">
-                </form>
-            </div>
-        </div>
-    `;
-
-  main.appendChild(popup);
-  modelNameTxt.textContent = modelName;
-  modelFileInput.addEventListener('change', (e) => {
-        newModel = e.target.files[0];
-        modelNameTxt.textContent = newModel.name;
-        reloadModel(newModel);
-        toggleSettingsPopup();
-    });
+    return Boolean(existingPopup);
 }
 
 async function reloadModel(model) {
@@ -413,7 +480,7 @@ async function reloadModel(model) {
         formData.append('filename', model.name);
 
         // Send POST request
-        const response = await fetch('/model-reload', {
+        const res = await fetch('/api/model-reload', {
             method: 'POST',
             body: formData
         });
@@ -427,14 +494,14 @@ async function reloadModel(model) {
 }
 
 async function loadDatabase() {
-    const response = await fetch("/load-database");
-    const data = await response.json();
+    const res = await fetch("/api/load-database");
+    const resData = await res.json();
 
     tableBody.innerHTML = "";
 
-    data.forEach(row => {
-        // convert confidence value into percent string
-        const conf = row.predicted_class === 1 ? row.confidence : (1 - row.confidence);
+    resData.forEach(row => {
+        // convert prediction value into confidence percent string
+        const conf = row.predicted_class === 1 ? row.prediction : (1 - row.prediction);
         const confPct = (conf * 100).toFixed(1) + "%";
 
         const tr = document.createElement("tr");
@@ -449,4 +516,32 @@ async function loadDatabase() {
         `;
         tableBody.appendChild(tr);
     });
+}
+
+async function saveDatabase() {
+    try {
+        const payload = {
+                    pID: patient.pID,
+                    predicted_class: patient.predClass,
+                    prediction: patient.prediction,
+                    reviewer: main.querySelector('[data-field="reviewer"]').textContent,
+                    status: main.querySelector('[data-field="status-select"]').value,
+                    annotation: main.querySelector('[data-field="description"]').value
+                };
+
+        const res = await fetch("/api/save-to-database", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        // Close popup
+        controlClick(saveBtn.id);
+
+    } catch (error) {
+        // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
+        typeText(`<strong>Error:</strong> ${error.message}`);
+    }
 }

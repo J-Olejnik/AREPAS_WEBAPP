@@ -137,11 +137,11 @@ def predict():
             })
         
         # Cleanup
-            for img in images:
-                img.close()
-            del img_arrays
-            del batch_images
-            
+        for img in images:
+            img.close()
+        del img_arrays
+        del batch_images
+
         return jsonify(results)
 
     except Exception as e:
@@ -185,7 +185,7 @@ def save_to_db():
                 annotation
             ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
-            data["pID"],
+            data["pID"][:15],
             datetime.now().strftime("%Y-%m-%d %H:%M"),
             int(data["predicted_class"]),
             float(data["prediction"]),

@@ -15,7 +15,10 @@ const actions = {
 
     // Model reload
     lastStatus: null,
-    modelStatusChecking: false
+    modelStatusChecking: false,
+
+    // Current tab
+    currentTab: menuItems[0].name
 };
 
 const data = {
@@ -123,6 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     settingsBtn.addEventListener('click', () => controlClick(settingsBtn.id));
+
+    // Save main content if user changes page
+    data.mainContent = document.getElementById('dataContainer').innerHTML;
 
     // Methods to run once the main page loads
     establishMainListeners();
@@ -340,9 +346,6 @@ async function handleImages(files) {
         // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
         typeText(`<strong>Error:</strong> ${error.message}`);
     }
-
-    // Save main content if user changes page
-    data.mainContent = document.getElementById('dataContainer').innerHTML;
 }
 
 function displayImage(element, uri) {
@@ -420,12 +423,12 @@ function typeText(text, multiple = false) {
 
     // Reset text and index in non append mode
     textBox.innerHTML = '';
-
+    textBox.dataset.fullText = multiple ? text : `<p>${text}</p>`;
     let index = 0;
     actions.typingInProgress = true;
 
     function animateTyping() {
-        if (index <= text.length) {
+        if (index <= text.length && actions.typingInProgress) {
             textBox.innerHTML = multiple ? `${text.slice(0, index)}` : `<p>${text.slice(0, index)}</p>`;
             index++;
 
@@ -435,32 +438,41 @@ function typeText(text, multiple = false) {
                 actions.typingInProgress = false;
             }
         }
-
-        // Save main content if user changes page
-        data.mainContent = document.getElementById('dataContainer').innerHTML;
     }
 
     // Start animation
     animateTyping();
 }
 
-async function setTemplate(item, targetElementId = 'dataContainer') {
+async function setTemplate(target, targetElementId = 'dataContainer') {
     const heading = document.getElementById("heading").querySelector("h1");
     const element = document.getElementById(targetElementId);
+
+    if (actions.typingInProgress) {
+        actions.typingInProgress = false;
+        textBox.innerHTML = textBox.dataset.fullText;
+    }
     
-    if (item.name === 'main') {
+    // Save main content
+    if (actions.currentTab === 'main') data.mainContent = document.getElementById('dataContainer').innerHTML;
+
+
+    if (target.name === 'main') {
         heading.textContent = "UNILATERAL UTO CLASSIFICATION";
         element.innerHTML = data.mainContent;
         establishMainListeners();
     } else {
-        const template = document.getElementById(`${item.name}-template`).content.cloneNode(true);
-        heading.textContent = item.text;
+        const template = document.getElementById(`${target.name}-template`).content.cloneNode(true);
+        heading.textContent = target.text;
         element.replaceChildren(template);
 
-        if(item.name === 'database') {
+        if(target.name === 'database') {
             loadDatabase();
         }
     }
+
+    // Remember current tab
+    actions.currentTab = target.name;
 }
 
 function checkExisting(id) {

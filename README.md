@@ -1,5 +1,7 @@
-# DL and XAI prediciton GUI for the AREPAS project
-Simple, Flask-based, deep learning and explainable AI prediction web GUI made for the AREPAS project. Its main purpose is to enable clinicians involved in the project to use and experiment with the already trained models.
+# DL and XAI Prediction Tool for the AREPAS Project
+
+This repository contains a simple Flask-based deep learning and explainable AI (XAI) prediction tool developed for the AREPAS project. The application enables clinicians involved in the project to use and experiment with the already trained models, with the option to store prediction results in a SQLite database.
+
 
 ![Screenshot](./README.png)
 

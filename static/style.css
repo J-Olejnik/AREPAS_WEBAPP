@@ -154,7 +154,8 @@ h1 {
 }
 
 #dataContainer {
-    width: 100%;
+  width: 100%;
+  overflow-y: auto;
 }
 
 #outImgContainer {
@@ -299,7 +300,7 @@ circle {
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  padding: 40px 10px 10px 10px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -333,6 +334,7 @@ circle {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  padding-top: 40px;
 }
 
 .form-container {

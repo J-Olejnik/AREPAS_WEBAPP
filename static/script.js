@@ -497,12 +497,12 @@ async function reloadModel(model) {
             body: formData
         });
 
+        checkModelStatus();
+        
     } catch (error) {
         // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
         typeText(`<strong>Error:</strong> ${error.message}`);
     }
-
-    checkModelStatus();
 }
 
 async function loadDatabase() {

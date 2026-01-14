@@ -84,6 +84,7 @@ def model_reload():
         model_bytes = file.read()
 
         app.config["model_name"] = request.form.get('filename')
+        app.config["model_error"] = None
         app.config["model_loaded"] = False
         threading.Thread(target=background_model_load, args=(model_bytes,), daemon=True).start()
 
@@ -104,11 +105,9 @@ def predict():
     
         # Collect all images into a single batch
         img_arrays = []
-        images = []
 
         for file in files:
             img = Image.open(file).convert('L')
-            images.append(img)
             img_array = img_to_array(img)
             img_arrays.append(img_array.astype("float32") / 255.0)
         
@@ -135,12 +134,6 @@ def predict():
                     'gradcam': gradcam
                 }
             })
-        
-        # Cleanup
-        for img in images:
-            img.close()
-        del img_arrays
-        del batch_images
 
         return jsonify(results)
 

@@ -158,7 +158,7 @@ def load_db():
 
 @app.route('/api/save-to-database', methods=['POST'])
 def save_to_db():
-    """Save new data to database via POST request"""
+    """Save new data to the database via POST request"""
     try:
         data = request.json
         if not data:
@@ -197,6 +197,29 @@ def save_to_db():
         conn.close()
 
         return jsonify({'status': 'New data saved successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/delete-from-database', methods=['POST'])
+def delete_from_db():
+    """Delete the specified record form the database via POST request"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        conn = sqlite3.connect(app.config["db_path"])
+        cur = conn.cursor()
+
+        cur.execute(
+            "DELETE FROM predictions WHERE id = ?",
+            (int(data["id"]),)
+        )
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({'status': 'Record deleted successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

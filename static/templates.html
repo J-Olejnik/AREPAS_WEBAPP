@@ -87,9 +87,10 @@
                 <textarea id="annotation" placeholder="Annotations..." data-field="annotation"></textarea>
             </form>
         </div>
-        <div class="btnContainer">
-            <div class="popup-item">
+        <div class="popup-item">
+            <div id="popupBtns" class="btnContainer">
                 <button id="saveBtn" type="button" data-id="" onclick="save2Database(this.dataset.id)">Save</button>
+                <button id="deleteBtn" type="button" data-id="" onclick="controlClick('deleteRowBtn', this.dataset.id)" hidden>Delete</button>
             </div>
         </div>
     </div>

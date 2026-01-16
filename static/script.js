@@ -233,7 +233,11 @@ function controlClick(id, dbRow=null) {
             if (checkExisting('#data-popup')) break;
 
             const popup = document.getElementById('data-popup-template').content.cloneNode(true);
-            if (dbRow) popup.getElementById("saveBtn").dataset.id = dbRow.id;
+            
+            if (dbRow) {
+                popup.getElementById("saveBtn").dataset.id = popup.getElementById("deleteBtn").dataset.id = dbRow.id;
+                popup.getElementById("deleteBtn").hidden = false;
+            }
 
             const displayData = dbRow ?? patient.toJSON();
 
@@ -252,7 +256,7 @@ function controlClick(id, dbRow=null) {
             break;
         }
         case 'deleteRowBtn': {
-            
+            deleteFromDatabase(dbRow);
             break;
         }
         case 'settingsBtn': {
@@ -566,6 +570,27 @@ async function save2Database(id = null) {
         // Close popup and reload database
         checkExisting('#data-popup');
         if (id) loadDatabase();
+
+    } catch (error) {
+        // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
+        //typeText(`<strong>Error:</strong> ${error.message}`);
+        console.log(error.message);
+    }
+}
+
+async function deleteFromDatabase(id) {
+    try {
+        const res = await fetch("/api/delete-from-database", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({id: id})
+        });
+
+        // Close popup and reload database
+        checkExisting('#data-popup');
+        loadDatabase();
 
     } catch (error) {
         // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;

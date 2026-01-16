@@ -169,6 +169,7 @@ def save_to_db():
 
         cur.execute("""
             INSERT INTO predictions (
+                id,
                 pID,
                 date_of_prediction,
                 predicted_class,
@@ -176,8 +177,13 @@ def save_to_db():
                 reviewer,
                 status,
                 annotation
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                reviewer = excluded.reviewer,
+                status = excluded.status,
+                annotation = excluded.annotation
         """, (
+            int(data["id"]) if data["id"] else None,
             data["pID"][:15],
             datetime.now().strftime("%Y-%m-%d %H:%M"),
             int(data["predicted_class"]),

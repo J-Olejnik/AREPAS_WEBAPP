@@ -242,6 +242,7 @@ button {
     font-size: 17px;
     transition: all 0.5s;
     -webkit-transition: all 0.5s;
+    cursor: pointer;
 }
   
 button:not(:disabled):hover {
@@ -251,6 +252,7 @@ button:not(:disabled):hover {
 button:disabled {
     background-color: #999;
     opacity: 0.6;
+    cursor: default;
 }
 
 #textBox {
@@ -345,7 +347,7 @@ circle {
   width: 250px;
 }
 
-#save-popup {
+#data-popup {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -387,7 +389,7 @@ circle {
   font-size: 15px;
 }
 
-#description {
+#annotation {
   min-width: 300px;  
   min-height: 120px;
   font-size: 15px;

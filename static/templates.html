@@ -54,9 +54,9 @@
     </div>
 </template>
 
-<template id="save-popup-template">
-    <div id="save-popup" class="popup">
-        <span class="popup-close" onclick="controlClick('saveBtn')">&times;</span>
+<template id="data-popup-template">
+    <div id="data-popup" class="popup">
+        <span class="popup-close" onclick="checkExisting('#data-popup')">&times;</span>
         <div class="popup-item">
             <form class="form-container">
                 <div class="param-grid">
@@ -73,23 +73,23 @@
                     </div>
 
                     <div class="param">
-                        <span class="label">Predicted class:</span><span data-field="predClass"></span>
+                        <span class="label">Predicted class:</span><span data-field="predicted_class"></span>
                     </div>
                 </div>
                 <div class="param">
                     <span class="label">Status:</span>
-                    <select class="status-select" data-field="status-select">
+                    <select class="status-select" data-field="status">
                         <option value="Open">Open</option>
                         <option value="Reviewed">Reviewed</option>
                         <option value="Flagged">Flagged</option>
                     </select>
                 </div>
-                <textarea id="description" placeholder="Annotations..." data-field="description"></textarea>
+                <textarea id="annotation" placeholder="Annotations..." data-field="annotation"></textarea>
             </form>
         </div>
         <div class="btnContainer">
             <div class="popup-item">
-                <button type="button" onclick="saveDatabase()">Save</button>
+                <button id="saveBtn" type="button" data-id="" onclick="save2Database(this.dataset.id)">Save</button>
             </div>
         </div>
     </div>

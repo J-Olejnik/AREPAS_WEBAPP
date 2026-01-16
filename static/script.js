@@ -55,7 +55,7 @@ const patient = {
 
     get confidence() {
         const conf = this.predClass === 1 ? this.prediction : (1 - this.prediction);
-        return (conf * 100).toFixed(1);
+        return (conf * 100).toFixed(1) + "%";
     },
 
     get predClass() {
@@ -67,7 +67,7 @@ const patient = {
             pID: this.pID,
             prediction: this.prediction,
             confidence: this.confidence,
-            predClass: this.predClass
+            predicted_class: this.predClass
         };
     }
 }
@@ -177,7 +177,7 @@ async function loadTemplates() {
     document.body.append(container);
 }
 
-function controlClick(id) {
+function controlClick(id, dbRow=null) {
 
     switch(id) {
         case 'prevBtn': {
@@ -190,7 +190,7 @@ function controlClick(id) {
 
                 textBox.innerHTML = `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
                 <p><strong>Predicted class:</strong> ${patient.predClass}</p>
-                <p><strong>Confidence:</strong> ${patient.confidence}%</p>`;
+                <p><strong>Confidence:</strong> ${patient.confidence}</p>`;
 
                 if (!data.currentId)
                     disableElement('prevBtn', true);
@@ -210,7 +210,7 @@ function controlClick(id) {
 
                 textBox.innerHTML = `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
                 <p><strong>Predicted class:</strong> ${patient.predClass}</p>
-                <p><strong>Confidence:</strong> ${patient.confidence}%</p>`;
+                <p><strong>Confidence:</strong> ${patient.confidence}</p>`;
 
                 if (data.currentId)
                     disableElement('prevBtn', false);
@@ -230,17 +230,29 @@ function controlClick(id) {
             break;
         }
         case 'saveBtn': {
-            if (checkExisting('#save-popup')) break;
+            if (checkExisting('#data-popup')) break;
 
-            const popup = document.getElementById('save-popup-template').content.cloneNode(true);
+            const popup = document.getElementById('data-popup-template').content.cloneNode(true);
+            if (dbRow) popup.getElementById("saveBtn").dataset.id = dbRow.id;
+
+            const displayData = dbRow ?? patient.toJSON();
+
             popup.querySelectorAll('[data-field]').forEach(el => {
                 const key = el.dataset.field;
 
-                if (key in patient.toJSON()) {
-                    el.textContent = patient.toJSON()[key];
+                if (key in displayData) {
+                   if (el.tagName === "SELECT") {
+                        el.value = displayData[key];
+                    } else {
+                        el.textContent = displayData[key];
+                    }
                 }
             });
             main.appendChild(popup);
+            break;
+        }
+        case 'deleteRowBtn': {
+            
             break;
         }
         case 'settingsBtn': {
@@ -340,7 +352,7 @@ async function handleImages(files) {
         // <p><strong>Confidence:</strong> ${patient.confidence}%</p>`;
         typeText(`<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
         <p><strong>Predicted class:</strong> ${patient.predClass}</p>
-        <p><strong>Confidence:</strong> ${patient.confidence}%</p>`, true);
+        <p><strong>Confidence:</strong> ${patient.confidence}</p>`, true);
 
     } catch (error) {
         // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
@@ -498,7 +510,7 @@ async function reloadModel(model) {
         });
 
         checkModelStatus();
-        
+                
     } catch (error) {
         // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
         typeText(`<strong>Error:</strong> ${error.message}`);
@@ -514,31 +526,33 @@ async function loadDatabase() {
     resData.forEach(row => {
         // convert prediction value into confidence percent string
         const conf = row.predicted_class === 1 ? row.prediction : (1 - row.prediction);
-        const confPct = (conf * 100).toFixed(1) + "%";
+        row.confidence = (conf * 100).toFixed(1) + "%";
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
             <td>${row.pID}</td>
             <td>${row.date_of_prediction}</td>
             <td>${row.predicted_class}</td>
-            <td>${confPct}</td>
+            <td>${row.confidence}</td>
             <td>${row.reviewer}</td>
             <td>${row.status}</td>
             <td>${row.annotation}</td>
         `;
+        tr.addEventListener('click', () => {controlClick('saveBtn',row)});
         tableBody.appendChild(tr);
     });
 }
 
-async function saveDatabase() {
+async function save2Database(id = null) {
     try {
         const payload = {
-                    pID: patient.pID,
-                    predicted_class: patient.predClass,
-                    prediction: patient.prediction,
+                    id: id,
+                    pID: id ? '' : patient.pID,
+                    predicted_class: id ? 0 : patient.predClass,
+                    prediction: id ? 0 : patient.prediction,
                     reviewer: main.querySelector('[data-field="reviewer"]').textContent,
-                    status: main.querySelector('[data-field="status-select"]').value,
-                    annotation: main.querySelector('[data-field="description"]').value
+                    status: main.querySelector('[data-field="status"]').value,
+                    annotation: main.querySelector('[data-field="annotation"]').value
                 };
 
         const res = await fetch("/api/save-to-database", {
@@ -548,12 +562,14 @@ async function saveDatabase() {
             },
             body: JSON.stringify(payload)
         });
-        
-        // Close popup
-        controlClick(saveBtn.id);
+
+        // Close popup and reload database
+        checkExisting('#data-popup');
+        if (id) loadDatabase();
 
     } catch (error) {
         // textBox.innerHTML = `<p><strong>Error:</strong> ${error.message}</p>`;
-        typeText(`<strong>Error:</strong> ${error.message}`);
+        //typeText(`<strong>Error:</strong> ${error.message}`);
+        console.log(error.message);
     }
 }

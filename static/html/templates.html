@@ -28,12 +28,12 @@
 
 <template id="imgBtn-template">
     <div id="imgBtns" class="btnContainer">
-        <button type="button" id="prevBtn" onclick="controlClick(this.id)" disabled>Prev</button>
-        <button type="button" id="nextBtn" onclick="controlClick(this.id)" disabled>Next</button>
+        <button type="button" id="prevBtn" data-action="prev" disabled>Prev</button>
+        <button type="button" id="nextBtn" data-action="next" disabled>Next</button>
     </div>
     <div id="gradcamBtns" class="btnContainer">
-        <button type="button" id="saveBtn" onclick="controlClick(this.id)" disabled> Save to DB <i class="fa-solid fa-database"></i></button>
-        <button type="button" id="downloadBtn" onclick="controlClick(this.id)" disabled> Download <i class="fa-solid fa-download"></i></button>
+        <button type="button" id="saveBtn" data-action="openDbPop" disabled> Save to DB <i class="fa-solid fa-database"></i></button>
+        <button type="button" id="downloadBtn" data-action="download" disabled> Download <i class="fa-solid fa-download"></i></button>
     </div>
 </template>
 
@@ -45,7 +45,7 @@
         </div>
         <div class="popup-item">
             <div id="modelBtnContainer" class="centerFlex">
-                <button type="button" id="changeModelBtn" onclick="document.getElementById('modelFileInput').click()">Pick new model</button>
+                <button type="button" id="changeModelBtn" data-action="pickModel">Pick new model</button>
                 <form id="modelReloadForm" action="/" method="post" enctype="multipart/form-data" style="display:none;">
                     <input type="file" id="modelFileInput" accept=".keras">
                 </form>
@@ -56,7 +56,7 @@
 
 <template id="data-popup-template">
     <div id="data-popup" class="popup">
-        <span class="popup-close" onclick="checkExisting('#data-popup')">&times;</span>
+        <span class="popup-close" data-action="close">&times;</span>
         <div class="popup-item">
             <form class="form-container">
                 <div class="param-grid">
@@ -89,8 +89,8 @@
         </div>
         <div class="popup-item">
             <div id="popupBtns" class="btnContainer">
-                <button id="saveBtn" type="button" data-id="" onclick="save2Database(this.dataset.id)">Save</button>
-                <button id="deleteBtn" type="button" data-id="" onclick="controlClick('deleteRowBtn', this.dataset.id)" hidden>Delete</button>
+                <button id="popupSaveBtn" type="button" data-id="" data-action="save">Save</button>
+                <button id="popupDeleteBtn" type="button" data-id="" data-action="delete" hidden>Delete</button>
             </div>
         </div>
     </div>

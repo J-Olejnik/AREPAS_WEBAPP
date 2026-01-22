@@ -1,0 +1,92 @@
+/* Popups */
+.popup {
+  position: absolute;      
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000;
+}
+
+.popup-item {
+  font-size: 17px;
+  color: black;
+}
+
+.popup-close {
+  position: absolute;
+  top: 7px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: bold;
+  color: black;
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background-color 0.2s;
+}
+
+.popup-close:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+#settings-popup {
+  bottom: 25px;            
+  left: 10px;
+  width: 250px;
+}
+
+#data-popup {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding-top: 40px;
+}
+
+.form-container {
+    display: flex;
+    flex-direction: column;
+    gap: 19px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    border: 2px solid black;
+    padding: 10px;
+}
+
+.param-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 19px 10px;
+  width: 100%;
+}
+
+.param {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 5px;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.status-select {
+  font-size: 15px;
+}
+
+#annotation {
+  min-width: 300px;  
+  min-height: 120px;
+  font-size: 15px;
+}

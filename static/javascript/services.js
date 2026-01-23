@@ -149,14 +149,14 @@ export const ModelStatusChecker = (() => {
             AppState.updateData({ modelName: data.name });
             
             if (data.status !== state.model.lastStatus) {
+                // Import DOMHelpers dynamically to avoid circular dependency
+                const { DOMHelpers } = await import('./utils.js');
+
                 if (data.status) {
-                    // Import DOMHelpers dynamically to avoid circular dependency
-                    const { DOMHelpers } = await import('./utils.js');
                     DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
                     DOMHelpers.typeText('Model is ready!');
                     AppState.updateModel({ lastStatus: true });
                 } else {
-                    const { DOMHelpers } = await import('./utils.js');
                     DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
                     const message = data.error 
                         ? `<strong>Error:</strong> ${data.error}`

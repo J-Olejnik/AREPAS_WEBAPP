@@ -1,5 +1,5 @@
 import { ELEMENTS, TEMPLATES } from './constants.js';
-import { AppState, APIService } from './services.js';
+import { AppState, APIService, ModelStatusChecker } from './services.js';
 import { DOMHelpers } from './utils.js';
 
 export const ImageHandler = (() => {
@@ -146,6 +146,9 @@ export const NavigationHandler = (() => {
             AppState.updateData({ currentId: state.data.currentId - 1 });
             updateDisplay();
         }
+        if (DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP)) {
+            PopupHandler.changeDataPopup();
+        }
     }
 
     function navigateNext() {
@@ -153,6 +156,9 @@ export const NavigationHandler = (() => {
         if (state.data.currentId < state.data.inputData.length - 1) {
             AppState.updateData({ currentId: state.data.currentId + 1 });
             updateDisplay();
+        }
+        if (DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP)) {
+            PopupHandler.changeDataPopup();
         }
     }
 
@@ -212,6 +218,25 @@ export const PopupHandler = (() => {
         }
     }
 
+    function changeDataPopup() {
+        const popup = document.getElementById(ELEMENTS.DATA_POPUP);
+
+        const patient = AppState.getPatient();
+        const displayData = {
+            pID: patient?.pID,
+            prediction: patient?.prediction,
+            confidence: patient?.confidence,
+            predicted_class: patient?.predClass
+        };
+
+        popup.querySelectorAll('[data-field]').forEach(el => {
+            const key = el.dataset.field;
+            if (key in displayData) {
+                el.textContent = displayData[key];
+            }
+        });
+    }
+
     function closeDataPopup() {
         DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP, true);
         
@@ -241,7 +266,6 @@ export const PopupHandler = (() => {
 
             try {
                 await APIService.reloadModel(formData);
-                const { ModelStatusChecker } = await import('./services.js');
                 ModelStatusChecker.check();
                 DOMHelpers.checkExisting(ELEMENTS.SETTINGS_POPUP, true);
                 DOMHelpers.showNotification('Model reload initiated', 'success');
@@ -294,6 +318,7 @@ export const PopupHandler = (() => {
 
     return {
         openDataPopup,
+        changeDataPopup,
         closeDataPopup,
         openSettingsPopup,
         saveData,

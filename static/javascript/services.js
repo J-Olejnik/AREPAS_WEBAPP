@@ -12,7 +12,8 @@ export const AppState = (() => {
         },
         ui: {
             typingInProgress: false,
-            currentTab: 'main'
+            currentTab: 'main',
+            activePopup: null
         },
         model: {
             lastStatus: null,
@@ -154,10 +155,12 @@ export const ModelStatusChecker = (() => {
 
                 if (data.status) {
                     DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
+                    DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
                     DOMHelpers.typeText('Model is ready!');
                     AppState.updateModel({ lastStatus: true });
                 } else {
                     DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
+                    DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
                     const message = data.error 
                         ? `<strong>Error:</strong> ${data.error}`
                         : 'Model is loading...';

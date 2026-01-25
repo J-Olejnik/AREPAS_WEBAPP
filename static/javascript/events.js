@@ -4,7 +4,7 @@ import { DOMHelpers } from './utils.js';
 import { ImageHandler, PopupHandler, NavigationHandler, TemplateHandler } from './handlers.js';
 
 export const EventManager = (() => {
-    function attachMainListeners() {
+    function attachInputListeners() {
         const dropArea = document.getElementById(ELEMENTS.DROP_AREA);
         const fileInput = document.getElementById(ELEMENTS.FILE_INPUT);
         
@@ -32,16 +32,18 @@ export const EventManager = (() => {
             ImageHandler.handleFiles(files);
         };
 
-        dropArea.addEventListener('drop', e =>
-            handleFileSource(e.dataTransfer.files)
-        );
+        dropArea.addEventListener('drop', e => {
+            if (dropArea.dataset.disabled === 'true') return;
+
+            handleFileSource(e.dataTransfer.files);
+        });
 
         fileInput.addEventListener('change', e =>
             handleFileSource(e.target.files)
         );
     }
 
-    function attachClickListener() {
+    function attachClickListeners() {
         const clickActions = {
             save: (el) => PopupHandler.saveData(el.dataset.id),
             delete: (el) => PopupHandler.deleteData(el.dataset.id),
@@ -62,6 +64,60 @@ export const EventManager = (() => {
             
             const action = clickActions[btn.dataset.action];
             if (action) action(btn);
+        });
+    }
+
+    function attachDragListeners() {
+        const state = AppState.getState();
+        const main = document.getElementById(ELEMENTS.MAIN);
+        let offsetX = 0;
+        let offsetY = 0;
+
+        main.addEventListener('pointerdown', e => {
+            const popup = e.target.closest('#data-popup');
+            if (!popup) return;
+
+            // Ignore interactive elements
+            if (e.target.closest('.popup-close, .popup-item')) return;
+
+            AppState.updateUI({ activePopup: popup});
+
+            const mainRect = main.getBoundingClientRect();
+            const popupRect = popup.getBoundingClientRect();
+
+            popup.style.left = `${popupRect.left - mainRect.left}px`;
+            popup.style.top = `${popupRect.top - mainRect.top}px`;
+            popup.style.transform = 'none';
+
+            offsetX = e.clientX - popupRect.left;
+            offsetY = e.clientY - popupRect.top;
+        });
+
+        main.addEventListener('pointermove', e => {
+            if(!state.ui.activePopup) return;
+
+            const mainRect = main.getBoundingClientRect();
+            const popupRect = state.ui.activePopup.getBoundingClientRect();
+
+            let left = e.clientX - offsetX;
+            let top = e.clientY - offsetY;
+
+            // Constrain within main div
+            left = Math.max(mainRect.left, Math.min(left, mainRect.right - popupRect.width));
+            top = Math.max(mainRect.top, Math.min(top, mainRect.bottom - popupRect.height));
+
+            // Convert to main-relative coordinates
+            left -= mainRect.left;
+            top -= mainRect.top;
+
+            state.ui.activePopup.style.left = `${left}px`;
+            state.ui.activePopup.style.top = `${top}px`;
+        });
+
+        main.addEventListener('pointerup', e => {
+            if(!state.ui.activePopup) return;
+            
+            AppState.updateUI({ activePopup: null});
         });
     }
 
@@ -124,9 +180,18 @@ export const EventManager = (() => {
         settingsBtn.addEventListener('click', () => PopupHandler.openSettingsPopup());
     }
 
+    function attachAllListeners() {
+        attachInputListeners();
+        attachClickListeners();
+        attachDragListeners();
+        attachMenuListeners();
+    }
+
     return {
-        attachMainListeners,
-        attachClickListener,
+        init: attachAllListeners,
+        attachInputListeners,
+        attachClickListeners,
+        attachDragListeners,
         attachMenuListeners
     };
 })();

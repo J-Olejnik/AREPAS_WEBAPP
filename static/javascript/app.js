@@ -12,9 +12,7 @@ const App = (() => {
         });
 
         // Attach all event listeners
-        EventManager.attachMainListeners();
-        EventManager.attachClickListener();
-        EventManager.attachMenuListeners();
+        EventManager.init();
 
         // Load templates and check model status
         TemplateHandler.loadTemplates();

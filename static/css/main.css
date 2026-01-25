@@ -169,6 +169,10 @@ h1 {
     border-color: #333;
 }
 
+#dropArea[data-disabled="true"] {
+    cursor: default;
+}
+
 .btnContainer {
     display: flex;
     gap: 5px;

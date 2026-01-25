@@ -14,6 +14,9 @@ export const ImageHandler = (() => {
             DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, true);
         }
 
+        DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
+        DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
+
         const formData = new FormData();
         const newImageData = [];
 
@@ -106,10 +109,14 @@ export const ImageHandler = (() => {
         const saveBtn = tempContainer.querySelector('#' + ELEMENTS.SAVE_BTN);
         const downloadBtn = tempContainer.querySelector('#' + ELEMENTS.DOWNLOAD_BTN);
         const nextBtn = tempContainer.querySelector('#' + ELEMENTS.NEXT_BTN);
+        const fileInput = tempContainer.querySelector('#' + ELEMENTS.FILE_INPUT);
+        const dropArea = tempContainer.querySelector('#' + ELEMENTS.DROP_AREA);
         
         if (saveBtn) saveBtn.disabled = false;
         if (downloadBtn) downloadBtn.disabled = false;
         if (nextBtn && fileCount > 1) nextBtn.disabled = false;
+        if (fileInput) fileInput.disabled = false;
+        if (dropArea) dropArea.dataset.disabled = 'false';
         
         // Save updated HTML back to mainContent
         AppState.updateData({ mainContent: tempContainer.innerHTML });
@@ -133,6 +140,9 @@ export const ImageHandler = (() => {
             <p><strong>Confidence:</strong> ${patient.confidence}</p>`,
             true
         );
+
+        DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
+        DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
     }
 
     return { handleFiles };
@@ -202,6 +212,8 @@ export const PopupHandler = (() => {
         DOMHelpers.openPopup(TEMPLATES.DATA_POPUP, displayData);
 
         if (DOMHelpers.checkExisting(ELEMENTS.IMG_BTNS)) {
+            DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
+            DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
             DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);
             DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, true);
         }
@@ -242,6 +254,8 @@ export const PopupHandler = (() => {
         
         const saveBtn = document.getElementById(ELEMENTS.SAVE_BTN);
         if (DOMHelpers.checkExisting(ELEMENTS.IMG_BTNS) && saveBtn.disabled) {
+            DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
+            DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
             DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
             DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, false);
         }
@@ -398,7 +412,7 @@ export const TemplateHandler = (() => {
             heading.textContent = "UNILATERAL UTO CLASSIFICATION";
             element.innerHTML = state.data.mainContent;
             const { EventManager } = await import('./events.js');
-            EventManager.attachMainListeners();
+            EventManager.attachInputListeners();
         } else {
             const template = document.getElementById(`${target.name}-template`).content.cloneNode(true);
             heading.textContent = target.text;

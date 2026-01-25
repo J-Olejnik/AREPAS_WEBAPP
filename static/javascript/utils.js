@@ -50,7 +50,12 @@ export const DOMHelpers = (() => {
 
     function disableElement(elemId, state) {
         const elem = document.getElementById(elemId);
-        elem.disabled = state;
+        
+         if ('disabled' in elem.dataset) {
+            elem.dataset.disabled = String(state);
+        } else {
+            elem.disabled = state;
+        }
     }
 
     function checkExisting(id, remove = false) {

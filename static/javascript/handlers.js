@@ -7,13 +7,10 @@ export const ImageHandler = (() => {
 
         AppState.resetImageData();
         
-        if (DOMHelpers.checkExisting(ELEMENTS.IMG_BTNS)) {
-            DOMHelpers.disableElement(ELEMENTS.PREV_BTN, true);
-            DOMHelpers.disableElement(ELEMENTS.NEXT_BTN, true);
-            DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);
-            DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, true);
-        }
-
+        DOMHelpers.disableElement(ELEMENTS.PREV_BTN, true);
+        DOMHelpers.disableElement(ELEMENTS.NEXT_BTN, true);
+        DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);
+        DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, true);
         DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
         DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
 
@@ -65,14 +62,11 @@ export const ImageHandler = (() => {
             AppState.updateData({ responseData });
             
             // Check if still on main tab after response and render data accordingly
-            const currentState = AppState.getState();
-            (currentState.ui.currentTab === 'main' ? displayResults : renderInBackground)(patient, files.length);
+            const state = AppState.getState();
+            (state.ui.currentTab === 'main' ? displayResults : renderInBackground)(patient, files.length);
 
         } catch (error) {
-            if (AppState.getState().ui.currentTab === 'main') {
-                DOMHelpers.typeText(`<strong>Error:</strong> ${error.message}`);
-            }
-            DOMHelpers.showNotification('Prediction failed', 'error');
+            DOMHelpers.showNotification('Prediction failed', 'Error');
             console.error('Prediction error:', error);
         }
     }
@@ -120,6 +114,8 @@ export const ImageHandler = (() => {
         
         // Save updated HTML back to mainContent
         AppState.updateData({ mainContent: tempContainer.innerHTML });
+
+        DOMHelpers.showNotification('Prediction is ready!', 'Success');
     }
 
     function displayResults(patient, fileCount) {
@@ -211,12 +207,10 @@ export const PopupHandler = (() => {
         
         DOMHelpers.openPopup(TEMPLATES.DATA_POPUP, displayData);
 
-        if (DOMHelpers.checkExisting(ELEMENTS.IMG_BTNS)) {
-            DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
-            DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
-            DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);
-            DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, true);
-        }
+        DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
+        DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
+        DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);
+        DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, true);
 
         // Set button data-ids if editing existing row
         if (dbRow) {
@@ -250,10 +244,7 @@ export const PopupHandler = (() => {
     }
 
     function closeDataPopup() {
-        DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP, true);
-        
-        const saveBtn = document.getElementById(ELEMENTS.SAVE_BTN);
-        if (DOMHelpers.checkExisting(ELEMENTS.IMG_BTNS) && saveBtn.disabled) {
+        if (DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP, true)) {
             DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
             DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
             DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
@@ -274,6 +265,12 @@ export const PopupHandler = (() => {
             const newModel = e.target.files[0];
             if (!newModel) return;
 
+            DOMHelpers.checkExisting(ELEMENTS.SETTINGS_POPUP, true);
+            DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
+            DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
+            DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);
+            DOMHelpers.showNotification('Uploading new weights...', 'Info');
+
             const formData = new FormData();
             formData.append('model_data', newModel);
             formData.append('filename', newModel.name);
@@ -281,10 +278,9 @@ export const PopupHandler = (() => {
             try {
                 await APIService.reloadModel(formData);
                 ModelStatusChecker.check();
-                DOMHelpers.checkExisting(ELEMENTS.SETTINGS_POPUP, true);
-                DOMHelpers.showNotification('Model reload initiated', 'success');
+                
             } catch (error) {
-                DOMHelpers.showNotification('Model reload failed', 'error');
+                DOMHelpers.showNotification('Model reload failed', 'Error');
                 console.error('Model reload error:', error);
             }
         }, { once: true });
@@ -305,13 +301,13 @@ export const PopupHandler = (() => {
 
             await APIService.saveToDatabase(payload);
             PopupHandler.closeDataPopup();
-            DOMHelpers.showNotification('Data saved successfully', 'success');
+            DOMHelpers.showNotification('Data saved successfully', 'Success');
             
             if (id) {
                 await DatabaseHandler.load();
             }
         } catch (error) {
-            DOMHelpers.showNotification('Failed to save data', 'error');
+            DOMHelpers.showNotification('Failed to save data', 'Error');
             console.error('Save error:', error);
         }
     }
@@ -322,10 +318,10 @@ export const PopupHandler = (() => {
         try {
             await APIService.deleteFromDatabase(id);
             PopupHandler.closeDataPopup();
-            DOMHelpers.showNotification('Entry deleted', 'success');
+            DOMHelpers.showNotification('Entry deleted', 'Success');
             await DatabaseHandler.load();
         } catch (error) {
-            DOMHelpers.showNotification('Failed to delete entry', 'error');
+            DOMHelpers.showNotification('Failed to delete entry', 'Error');
             console.error('Delete error:', error);
         }
     }
@@ -367,7 +363,7 @@ export const DatabaseHandler = (() => {
             });
 
         } catch (error) {
-            DOMHelpers.showNotification('Failed to load database', 'error');
+            DOMHelpers.showNotification('Failed to load database', 'Error');
             console.error('Database load error:', error);
         }
     }
@@ -383,8 +379,8 @@ export const TemplateHandler = (() => {
             container.innerHTML = await res.text();
             document.body.append(container);
         } catch (error) {
+            DOMHelpers.showNotification('Failed to load templates', 'Error');
             console.error('Failed to load templates:', error);
-            DOMHelpers.showNotification('Failed to load templates', 'error');
         }
     }
 

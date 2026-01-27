@@ -25,7 +25,7 @@ export const DOMHelpers = (() => {
     function downloadGradCAM() {
         const patient = AppState.getPatient();
         if (!patient) {
-            showNotification('No GradCAM available to download', 'warning');
+            showNotification('No GradCAM available to download', 'Warning');
             return;
         }
 
@@ -35,7 +35,7 @@ export const DOMHelpers = (() => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showNotification('GradCAM downloaded', 'success');
+        showNotification('GradCAM downloaded', 'Success');
     }
 
     function showLoadingAnimation() {
@@ -50,12 +50,36 @@ export const DOMHelpers = (() => {
 
     function disableElement(elemId, state) {
         const elem = document.getElementById(elemId);
-        
-         if ('disabled' in elem.dataset) {
-            elem.dataset.disabled = String(state);
-        } else {
-            elem.disabled = state;
+
+        // Update live element if present
+        if (elem) {
+            if ('disabled' in elem.dataset) {
+                elem.dataset.disabled = String(state);
+            } else {
+                elem.disabled = state;
+            }
+            return;
         }
+
+        // Element not in DOM, try updating stored HTML
+        const appState = AppState.getState();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(appState.data.mainContent, 'text/html');
+        const storedElem = doc.getElementById(elemId);
+        
+        if (!storedElem) return;
+        
+        if ('disabled' in storedElem.dataset || storedElem.hasAttribute('data-disabled')) {
+            storedElem.dataset.disabled = String(state);
+        } else {
+            if (state) {
+                storedElem.setAttribute('disabled', '');
+            } else {
+                storedElem.removeAttribute('disabled');
+            }
+        }
+        
+        AppState.updateData({ mainContent: doc.body.innerHTML });
     }
 
     function checkExisting(id, remove = false) {
@@ -88,7 +112,7 @@ export const DOMHelpers = (() => {
 
     function typeText(text, multiple = false) {
         const state = AppState.getState();
-        if (state.ui.typingInProgress) return;
+        if (state.ui.typingInProgress || state.ui.currentTab !== 'main') return;
 
         const textBox = document.getElementById(ELEMENTS.TEXT_BOX);
         textBox.innerHTML = '';
@@ -113,9 +137,17 @@ export const DOMHelpers = (() => {
         animate();
     }
 
-    function showNotification(message, type = 'info') {
-        console.log(`[${type.toUpperCase()}] ${message}`);
-        // TODO: Implement popup for notifications
+    function showNotification(message, type, timeout = CONFIG.TOAST_TIMEOUT) {
+        checkExisting(ELEMENTS.TOAST_POPUP, true);
+
+        const toast = document.createElement('div');
+        toast.id = 'toast-popup';
+        toast.className = 'popup';
+        toast.innerHTML = `<div class="popup-item"><span class="toast-type">${type}:</span> ${message}</div>`;
+        
+        document.getElementById(ELEMENTS.MAIN).appendChild(toast);
+        
+        setTimeout(() => toast.remove(), timeout);
     }
 
     return {

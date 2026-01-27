@@ -156,15 +156,12 @@ export const ModelStatusChecker = (() => {
                 if (data.status) {
                     DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
                     DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
-                    DOMHelpers.typeText('Model is ready!');
+                    DOMHelpers.showNotification('Model is ready!', 'Success');
                     AppState.updateModel({ lastStatus: true });
                 } else {
-                    DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
-                    DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
-                    const message = data.error 
-                        ? `<strong>Error:</strong> ${data.error}`
-                        : 'Model is loading...';
-                    DOMHelpers.typeText(message);
+                    const message = data.error ? 'Model reloading process failed' : 'Model is reloading...';
+                    const type = data.error ? 'Error' : 'Info';
+                    DOMHelpers.showNotification(message, type);
                     AppState.updateModel({ lastStatus: data.error ? null : false });
                 }
             }
@@ -174,7 +171,7 @@ export const ModelStatusChecker = (() => {
             }
         } catch (error) {
             const { DOMHelpers } = await import('./utils.js');
-            DOMHelpers.typeText('<strong>Error:</strong> Unable to check model status');
+            DOMHelpers.showNotification('Unable to check model status', 'Error');
             console.error('Model status check error:', error);
         } finally {
             AppState.updateModel({ statusChecking: false });

@@ -22,6 +22,7 @@ export const ELEMENTS = {
     HEADING: 'heading',
     DATA_POPUP: 'data-popup',
     SETTINGS_POPUP: 'settings-popup',
+    TOAST_POPUP: 'toast-popup',
     POPUP_SAVE_BTN: 'popupSaveBtn',
     POPUP_DELETE_BTN: 'popupDeleteBtn'
 };
@@ -55,5 +56,6 @@ export const API_ENDPOINTS = {
 export const CONFIG = {
     TYPING_SPEED: 20,
     MODEL_STATUS_CHECK_INTERVAL: 2000,
-    MENU_ANIMATION_DELAY: 300
+    MENU_ANIMATION_DELAY: 300,
+    TOAST_TIMEOUT: 3000
 };

@@ -38,9 +38,10 @@ export const EventManager = (() => {
             handleFileSource(e.dataTransfer.files);
         });
 
-        fileInput.addEventListener('change', e =>
-            handleFileSource(e.target.files)
-        );
+        fileInput.addEventListener('change', e => {
+            handleFileSource(e.target.files);
+            e.target.value = '';
+        });
     }
 
     function attachClickListeners() {

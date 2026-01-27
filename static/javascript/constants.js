@@ -10,6 +10,7 @@ export const ELEMENTS = {
     MENU: 'menu',
     MENU_BTN: 'menuBtn',
     SETTINGS_BTN: 'settingsBtn',
+    CHANGE_MODEL_BTN: 'changeModelBtn',
     PREV_BTN: 'prevBtn',
     NEXT_BTN: 'nextBtn',
     SAVE_BTN: 'saveBtn',

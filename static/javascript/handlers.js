@@ -6,6 +6,7 @@ export const ImageHandler = (() => {
     async function handleFiles(files) {
 
         AppState.resetImageData();
+        AppState.updateUI({ predictionInProgress: true});
         
         DOMHelpers.disableElement(ELEMENTS.PREV_BTN, true);
         DOMHelpers.disableElement(ELEMENTS.NEXT_BTN, true);
@@ -13,6 +14,7 @@ export const ImageHandler = (() => {
         DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, true);
         DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
         DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
+        DOMHelpers.disableElement(ELEMENTS.CHANGE_MODEL_BTN, true);
 
         const formData = new FormData();
         const newImageData = [];
@@ -69,6 +71,9 @@ export const ImageHandler = (() => {
             DOMHelpers.showNotification('Prediction failed', 'Error');
             console.error('Prediction error:', error);
         }
+
+        AppState.updateUI({ predictionInProgress: false});
+        DOMHelpers.disableElement(ELEMENTS.CHANGE_MODEL_BTN, false);
     }
 
     function renderInBackground(patient, fileCount) {
@@ -259,6 +264,7 @@ export const PopupHandler = (() => {
         DOMHelpers.openPopup(TEMPLATES.SETTINGS_POPUP, {
             modelName: state.data.modelName
         });
+        if (state.ui.predictionInProgress) DOMHelpers.disableElement(ELEMENTS.CHANGE_MODEL_BTN, true);
 
         const modelFileInput = document.getElementById(ELEMENTS.MODEL_FILE_INPUT);
         modelFileInput.addEventListener('change', async (e) => {
@@ -266,6 +272,8 @@ export const PopupHandler = (() => {
             if (!newModel) return;
 
             DOMHelpers.checkExisting(ELEMENTS.SETTINGS_POPUP, true);
+            DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP, true);
+
             DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
             DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
             DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);

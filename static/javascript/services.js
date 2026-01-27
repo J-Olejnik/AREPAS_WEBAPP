@@ -12,6 +12,7 @@ export const AppState = (() => {
         },
         ui: {
             typingInProgress: false,
+            predictionInProgress: false,
             currentTab: 'main',
             activePopup: null
         },

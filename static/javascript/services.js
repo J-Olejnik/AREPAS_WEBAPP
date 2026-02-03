@@ -129,13 +129,24 @@ export const APIService = (() => {
         return await res.json();
     }
 
+    async function logError(error) {
+        const res = await fetch(API_ENDPOINTS.LOG_ERROR, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({error_msg:`${error.stack}`})
+        });
+        if (!res.ok) throw new Error(`Logging failed: ${res.status}`);
+        return await res.json();
+    }
+
     return {
         predict,
         checkModelStatus,
         reloadModel,
         loadDatabase,
         saveToDatabase,
-        deleteFromDatabase
+        deleteFromDatabase,
+        logError
     };
 })();
 

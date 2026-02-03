@@ -51,7 +51,8 @@ export const API_ENDPOINTS = {
     MODEL_RELOAD: '/api/model-reload',
     LOAD_DATABASE: '/api/load-database',
     SAVE_TO_DATABASE: '/api/save-to-database',
-    DELETE_FROM_DATABASE: '/api/delete-from-database'
+    DELETE_FROM_DATABASE: '/api/delete-from-database',
+    LOG_ERROR: 'api/log-error'
 };
 
 export const CONFIG = {

@@ -5,27 +5,33 @@ from tf_explain.core.grad_cam import GradCAM
 from base64 import b64encode
 from PIL import Image
 import numpy as np
-import io
-import os
-import threading
-import tempfile
-import argparse
-import webbrowser
+import io, os, logging, argparse, webbrowser, tempfile, threading
 import sqlite3
 from datetime import datetime
 
 # Initialize the Flask app
 app = Flask(__name__)
+os.makedirs("logs", exist_ok=True)
 
 # Initialize GradCAM
 explainer = GradCAM()
 
 # Global variables
+app.config["session_id"] = datetime.now().strftime("%Y%m%d_%H%M%S")
+app.config["log_file"] = f"logs/{app.config['session_id']}.log"
+app.config["log_format"] = "%(asctime)s | %(message)s"
 app.config["model"] = None
 app.config["model_error"] = None
 app.config["model_loaded"] = False
 app.config["model_name"] = None
 app.config["db_path"] = None
+
+# Logger setup
+logger = logging.getLogger("Error_logger")
+handler = logging.FileHandler(app.config["log_file"])
+handler.setFormatter(logging.Formatter(app.config["log_format"], datefmt="%Y-%m-%d %H:%M:%S"))
+logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 def background_model_load(source):
     """Background thread to load a model.\n
@@ -90,7 +96,6 @@ def model_reload():
 
         return jsonify({'status': 'Model data received successfully'}), 200
     except Exception as e:
-        print(e)
         return jsonify({'error': str(e)}), 500
     
 @app.route('/api/predict', methods=['POST'])
@@ -220,6 +225,20 @@ def delete_from_db():
         conn.close()
 
         return jsonify({'status': 'Record deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route("/api/log-error", methods=["POST"])
+def log_error():
+    """Log frontend errors via POST request"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        logger.error(data["error_msg"][:1000])
+
+        return jsonify({"status": "Error logged"}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

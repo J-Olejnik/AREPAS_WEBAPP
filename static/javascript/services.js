@@ -171,7 +171,7 @@ export const ModelStatusChecker = (() => {
                     DOMHelpers.showNotification('Model is ready!', 'Success');
                     AppState.updateModel({ lastStatus: true });
                 } else {
-                    const message = data.error ? 'Model reloading process failed' : 'Model is reloading...';
+                    const message = data.error ? 'Model reloading process failed' : 'Model is loading...';
                     const type = data.error ? 'Error' : 'Info';
                     DOMHelpers.showNotification(message, type);
                     AppState.updateModel({ lastStatus: data.error ? null : false });

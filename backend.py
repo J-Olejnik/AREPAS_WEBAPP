@@ -152,14 +152,12 @@ def predict():
 def load_db():
     """Endpoint to load the database"""
     try:
-        conn = sqlite3.connect(app.config["db_path"])
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+        with sqlite3.connect(app.config["db_path"]) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM predictions ORDER BY pID ASC")
+            rows = cur.fetchall()
 
-        cur.execute("SELECT * FROM predictions ORDER BY pID ASC")
-        rows = cur.fetchall()
-
-        conn.close()
         return jsonify([dict(row) for row in rows])
     except Exception as e:
         logger.error(e, exc_info=True)
@@ -173,37 +171,34 @@ def save_to_db():
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
 
-        conn = sqlite3.connect(app.config["db_path"])
-        cur = conn.cursor()
-
-        cur.execute("""
-            INSERT INTO predictions (
-                id,
-                pID,
-                date_of_prediction,
-                predicted_class,
-                prediction,
-                reviewer,
-                status,
-                annotation
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                reviewer = excluded.reviewer,
-                status = excluded.status,
-                annotation = excluded.annotation
-        """, (
-            int(data["id"]) if data["id"] else None,
-            data["pID"][:15],
-            datetime.now().strftime("%Y-%m-%d %H:%M"),
-            int(data["predicted_class"]),
-            float(data["prediction"]),
-            data["reviewer"][:50],
-            data["status"] if data["status"] in ["Open", "Reviewed", "Flagged"] else "Open",
-            data["annotation"][:500]
-        ))
-
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(app.config["db_path"]) as conn:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO predictions (
+                    id,
+                    pID,
+                    date_of_prediction,
+                    predicted_class,
+                    prediction,
+                    reviewer,
+                    status,
+                    annotation
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    reviewer = excluded.reviewer,
+                    status = excluded.status,
+                    annotation = excluded.annotation
+            """, (
+                int(data["id"]) if data["id"] else None,
+                data["pID"][:15],
+                datetime.now().strftime("%Y-%m-%d %H:%M"),
+                int(data["predicted_class"]),
+                float(data["prediction"]),
+                data["reviewer"][:50],
+                data["status"] if data["status"] in ["Open", "Reviewed", "Flagged"] else "Open",
+                data["annotation"][:500]
+            ))
+            conn.commit()
 
         return jsonify({'status': 'New data saved successfully'}), 200
     except Exception as e:
@@ -218,16 +213,13 @@ def delete_from_db():
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
 
-        conn = sqlite3.connect(app.config["db_path"])
-        cur = conn.cursor()
-
-        cur.execute(
-            "DELETE FROM predictions WHERE id = ?",
-            (int(data["id"]),)
-        )
-
-        conn.commit()
-        conn.close()
+        with sqlite3.connect(app.config["db_path"]) as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "DELETE FROM predictions WHERE id = ?",
+                (int(data["id"]),)
+            )
+            conn.commit()
 
         return jsonify({'status': 'Record deleted successfully'}), 200
     except Exception as e:

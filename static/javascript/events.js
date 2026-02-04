@@ -81,6 +81,8 @@ export const EventManager = (() => {
             // Ignore interactive elements
             if (e.target.closest('.popup-close, .popup-item')) return;
 
+            popup.classList.add('dragging');
+
             AppState.updateUI({ activePopup: popup});
 
             const mainRect = main.getBoundingClientRect();
@@ -118,6 +120,7 @@ export const EventManager = (() => {
         main.addEventListener('pointerup', e => {
             if(!state.ui.activePopup) return;
             
+            state.ui.activePopup.classList.remove('dragging');
             AppState.updateUI({ activePopup: null});
         });
     }

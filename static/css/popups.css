@@ -14,6 +14,7 @@
 .popup-item {
   font-size: 17px;
   color: black;
+  cursor: default;
 }
 
 .popup-close {
@@ -50,6 +51,11 @@
   transform: translate(-50%, -50%);
   padding-top: 40px;
   user-select: none;
+  cursor: grab;
+}
+
+#data-popup.dragging {
+  cursor: grabbing;
 }
 
 .form-container {

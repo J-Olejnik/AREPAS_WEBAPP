@@ -52,6 +52,7 @@ def background_model_load(source):
             raise ValueError("Invalid model source")
         app.config["model_loaded"] = True
     except Exception as e:
+        logger.error(e, exc_info=True)
         app.config["model_error"] = str(e)
         app.config["model_loaded"] = False
 
@@ -96,6 +97,7 @@ def model_reload():
 
         return jsonify({'status': 'Model data received successfully'}), 200
     except Exception as e:
+        logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
     
 @app.route('/api/predict', methods=['POST'])
@@ -143,6 +145,7 @@ def predict():
         return jsonify(results)
 
     except Exception as e:
+        logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/load-database')
@@ -159,6 +162,7 @@ def load_db():
         conn.close()
         return jsonify([dict(row) for row in rows])
     except Exception as e:
+        logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/save-to-database', methods=['POST'])
@@ -203,6 +207,7 @@ def save_to_db():
 
         return jsonify({'status': 'New data saved successfully'}), 200
     except Exception as e:
+        logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
     
 @app.route('/api/delete-from-database', methods=['POST'])
@@ -226,6 +231,7 @@ def delete_from_db():
 
         return jsonify({'status': 'Record deleted successfully'}), 200
     except Exception as e:
+        logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
     
 @app.route("/api/log-error", methods=["POST"])
@@ -240,6 +246,7 @@ def log_error():
 
         return jsonify({"status": "Error logged"}), 200
     except Exception as e:
+        logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":

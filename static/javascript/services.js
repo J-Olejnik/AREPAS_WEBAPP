@@ -184,7 +184,7 @@ export const ModelStatusChecker = (() => {
         } catch (error) {
             const { DOMHelpers } = await import('./utils.js');
             DOMHelpers.showNotification('Unable to check model status', 'Error');
-            console.error('Model status check error:', error);
+            APIService.logError(error);
         } finally {
             AppState.updateModel({ statusChecking: false });
         }

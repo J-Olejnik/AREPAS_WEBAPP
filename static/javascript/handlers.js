@@ -32,6 +32,12 @@ export const ImageHandler = (() => {
                     );
                 }
             };
+
+            reader.onerror = (error) => {
+                DOMHelpers.showNotification(`Failed to read file: ${file.name}`, 'Error');
+                APIService.logError(new Error(`FileReader error for ${file.name}: ${error}`));
+            };
+
             reader.readAsDataURL(file);
         });
 
@@ -69,7 +75,7 @@ export const ImageHandler = (() => {
 
         } catch (error) {
             DOMHelpers.showNotification('Prediction failed', 'Error');
-            console.error('Prediction error:', error);
+            APIService.logError(error);
         }
 
         AppState.updateUI({ predictionInProgress: false});
@@ -289,7 +295,7 @@ export const PopupHandler = (() => {
                 
             } catch (error) {
                 DOMHelpers.showNotification('Model reload failed', 'Error');
-                console.error('Model reload error:', error);
+                APIService.logError(error);
             }
         }, { once: true });
     }
@@ -316,7 +322,7 @@ export const PopupHandler = (() => {
             }
         } catch (error) {
             DOMHelpers.showNotification('Failed to save data', 'Error');
-            console.error('Save error:', error);
+            APIService.logError(error);
         }
     }
 
@@ -330,7 +336,7 @@ export const PopupHandler = (() => {
             await DatabaseHandler.load();
         } catch (error) {
             DOMHelpers.showNotification('Failed to delete entry', 'Error');
-            console.error('Delete error:', error);
+            APIService.logError(error);
         }
     }
 
@@ -372,7 +378,7 @@ export const DatabaseHandler = (() => {
 
         } catch (error) {
             DOMHelpers.showNotification('Failed to load database', 'Error');
-            console.error('Database load error:', error);
+            APIService.logError(error);
         }
     }
 
@@ -388,46 +394,51 @@ export const TemplateHandler = (() => {
             document.body.append(container);
         } catch (error) {
             DOMHelpers.showNotification('Failed to load templates', 'Error');
-            console.error('Failed to load templates:', error);
+            APIService.logError(error);
         }
     }
 
     async function setTemplate(target, targetElementId = ELEMENTS.DATA_CONTAINER) {
-        const heading = document.querySelector("#heading h1");
-        const element = document.getElementById(targetElementId);
-        const state = AppState.getState();
+        try {
+            const heading = document.querySelector("#heading h1");
+            const element = document.getElementById(targetElementId);
+            const state = AppState.getState();
 
-        if (state.ui.currentTab === target.name) return;
+            if (state.ui.currentTab === target.name) return;
 
-        if (state.ui.typingInProgress) {
-            AppState.updateUI({ typingInProgress: false });
-            document.getElementById(ELEMENTS.TEXT_BOX).innerHTML = document.getElementById(ELEMENTS.TEXT_BOX).dataset.fullText;
-        }
-
-        PopupHandler.closeDataPopup();
-        
-        if (state.ui.currentTab === 'main') {
-            AppState.updateData({ 
-                mainContent: document.getElementById(ELEMENTS.DATA_CONTAINER).innerHTML 
-            });
-        }
-
-        if (target.name === 'main') {
-            heading.textContent = "UNILATERAL UTO CLASSIFICATION";
-            element.innerHTML = state.data.mainContent;
-            const { EventManager } = await import('./events.js');
-            EventManager.attachInputListeners();
-        } else {
-            const template = document.getElementById(`${target.name}-template`).content.cloneNode(true);
-            heading.textContent = target.text;
-            element.replaceChildren(template);
-
-            if (target.name === 'database') {
-                await DatabaseHandler.load();
+            if (state.ui.typingInProgress) {
+                AppState.updateUI({ typingInProgress: false });
+                document.getElementById(ELEMENTS.TEXT_BOX).innerHTML = document.getElementById(ELEMENTS.TEXT_BOX).dataset.fullText;
             }
-        }
 
-        AppState.updateUI({ currentTab: target.name });
+            PopupHandler.closeDataPopup();
+            
+            if (state.ui.currentTab === 'main') {
+                AppState.updateData({ 
+                    mainContent: document.getElementById(ELEMENTS.DATA_CONTAINER).innerHTML 
+                });
+            }
+
+            if (target.name === 'main') {
+                heading.textContent = "UNILATERAL UTO CLASSIFICATION";
+                element.innerHTML = state.data.mainContent;
+                const { EventManager } = await import('./events.js');
+                EventManager.attachInputListeners();
+            } else {
+                const template = document.getElementById(`${target.name}-template`).content.cloneNode(true);
+                heading.textContent = target.text;
+                element.replaceChildren(template);
+
+                if (target.name === 'database') {
+                    await DatabaseHandler.load();
+                }
+            }
+
+            AppState.updateUI({ currentTab: target.name });
+        } catch (error) {
+            DOMHelpers.showNotification(`Failed to set the ${target.name} template`, 'Error');
+            APIService.logError(error);
+        }
     }
 
     return {

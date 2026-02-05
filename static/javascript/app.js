@@ -5,6 +5,11 @@ import { EventManager } from './events.js';
 
 const App = (() => {
     function init() {
+        // Initialize the websocket connection
+        const socket = io({
+            transports: ['websocket'],
+            upgrade: false
+        });
 
         // Save initial main content
         AppState.updateData({ 

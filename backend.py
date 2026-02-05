@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, jsonify
+from flask_socketio import SocketIO
 from tensorflow.keras.models import load_model # type: ignore
 from tensorflow.keras.preprocessing.image import img_to_array # type: ignore
 from tf_explain.core.grad_cam import GradCAM
@@ -11,27 +12,51 @@ from datetime import datetime
 
 # Initialize the Flask app
 app = Flask(__name__)
-os.makedirs("logs", exist_ok=True)
+socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
 # Initialize GradCAM
 explainer = GradCAM()
 
 # Global variables
-app.config["session_id"] = datetime.now().strftime("%Y%m%d_%H%M%S")
-app.config["log_file"] = f"logs/{app.config['session_id']}.log"
-app.config["log_format"] = "%(asctime)s | %(message)s"
+app.config["active_clients"] = set()
+app.config["log_file"] = f"logs/{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+app.config["shutdown_timer"] = None
+app.config["db_path"] = None
 app.config["model"] = None
 app.config["model_error"] = None
-app.config["model_loaded"] = False
 app.config["model_name"] = None
-app.config["db_path"] = None
+app.config["model_loaded"] = False
+
+# Socket setup
+@socketio.on("connect")
+def on_connect():
+    if app.config["shutdown_timer"]:
+        app.config["shutdown_timer"].cancel()
+        app.config["shutdown_timer"] = None
+    app.config["active_clients"].add(request.sid)
+
+@socketio.on("disconnect")
+def on_disconnect():
+    app.config["active_clients"].discard(request.sid)
+    if not app.config["active_clients"]:
+        app.config["shutdown_timer"] = threading.Timer(5, lambda: (logs_cleanup(), os._exit(0)))
+        app.config["shutdown_timer"].start()
 
 # Logger setup
+os.makedirs("logs", exist_ok=True)
 logger = logging.getLogger("Error_logger")
 handler = logging.FileHandler(app.config["log_file"])
-handler.setFormatter(logging.Formatter(app.config["log_format"], datefmt="%Y-%m-%d %H:%M:%S"))
+handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"))
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
+
+def logs_cleanup():
+    """Delete the log file used in this session if no errors were detected. \n
+    No errors -> empty log file -> delete from disc to declutter."""
+
+    handler.close()
+    if os.path.getsize(app.config["log_file"]) == 0:
+        os.remove(app.config["log_file"])
 
 def background_model_load(source):
     """Background thread to load a model.\n
@@ -253,4 +278,4 @@ if __name__ == "__main__":
     threading.Thread(target=background_model_load, args=(args.model,), daemon=True).start()
     threading.Timer(1, webbrowser.open, args=[f"http://127.0.0.1:{args.port}"]).start()
 
-    app.run(port=args.port)
+    socketio.run(app, port=args.port, use_reloader=False)

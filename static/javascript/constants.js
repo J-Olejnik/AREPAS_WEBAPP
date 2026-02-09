@@ -47,7 +47,6 @@ export const MENU_ITEMS = [
 
 export const API_ENDPOINTS = {
     PREDICT: '/api/predict',
-    MODEL_STATUS: '/api/model-status',
     MODEL_RELOAD: '/api/model-reload',
     LOAD_DATABASE: '/api/load-database',
     SAVE_TO_DATABASE: '/api/save-to-database',
@@ -57,7 +56,6 @@ export const API_ENDPOINTS = {
 
 export const CONFIG = {
     TYPING_SPEED: 20,
-    MODEL_STATUS_CHECK_INTERVAL: 2000,
     MENU_ANIMATION_DELAY: 300,
     TOAST_TIMEOUT: 3000
 };

@@ -23,9 +23,8 @@ app.config["log_file"] = f"logs/{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 app.config["shutdown_timer"] = None
 app.config["db_path"] = None
 app.config["model"] = None
-app.config["model_error"] = None
 app.config["model_name"] = None
-app.config["model_loaded"] = False
+app.config["cached_predictions"] = {}
 
 # Socket setup
 @socketio.on("connect")
@@ -34,6 +33,15 @@ def on_connect():
         app.config["shutdown_timer"].cancel()
         app.config["shutdown_timer"] = None
     app.config["active_clients"].add(request.sid)
+
+    model_exists = app.config["model"] is not None
+
+    socketio.emit('notification', {
+            'type': 'Success' if model_exists else 'Info',
+            'message': 'Model is ready!' if model_exists else 'Model is loading...',
+            'name': app.config["model_name"],
+            'status': model_exists
+        })
 
 @socketio.on("disconnect")
 def on_disconnect():
@@ -50,6 +58,7 @@ handler.setFormatter(logging.Formatter(fmt="%(asctime)s | %(message)s", datefmt=
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
+# Helper functions
 def logs_cleanup():
     """Delete the log file used in this session if no errors were detected. \n
     No errors -> empty log file -> delete from disc to declutter."""
@@ -58,69 +67,98 @@ def logs_cleanup():
     if os.path.getsize(app.config["log_file"]) == 0:
         os.remove(app.config["log_file"])
 
-def background_model_load(source):
+def background_model_load(source, name = None):
     """Background thread to load a model.\n
-    If the model is provided as bytes via API, it is temporarily saved and then loaded. \n
+    If the model is provided as bytes via API, it is temporarily saved and then loaded (necessary due to keras restrictions). \n
     Otherwise, it is loaded directly from the file path on disk."""
-    
+
     try:
+        socketio.emit('notification', {
+            'type': 'Info', 
+            'message': 'Model is loading...',
+            'status': False
+        })
+
         if isinstance(source, (bytes, bytearray)):
             with tempfile.NamedTemporaryFile(suffix=".keras", delete=False) as tmp:
                 tmp.write(source)
                 tmp_path = tmp.name
-            app.config["model"] = load_model(tmp_path)
+            new_model = load_model(tmp_path) # tmp var in case loading fails
+            app.config["model_name"] = name
             os.remove(tmp_path)
         elif isinstance(source, str) and os.path.exists(source):
+            new_model = load_model(source)
             app.config["model_name"] = os.path.basename(source)
-            app.config["model"] = load_model(source)
         else:
             raise ValueError("Invalid model source")
-        app.config["model_loaded"] = True
+        
+        app.config["model"] = new_model
+
+        socketio.emit('notification', {
+            'type': 'Success', 
+            'message': 'Model loaded!', 
+            'name': app.config["model_name"],
+            'status': True
+        })
+
     except Exception as e:
         logger.error(e, exc_info=True)
-        app.config["model_error"] = str(e)
-        app.config["model_loaded"] = False
+        socketio.emit('notification', {
+            'type': 'Error', 
+            'message': f'Model load failed: {e}',
+            'name': app.config["model_name"],
+            'status': app.config["model"] is not None
+        })
 
 def encode_image_base64(pil_image, format="JPEG"):
     """Encode a PIL image to a base64 string."""
+
     buffer = io.BytesIO()
     pil_image.save(buffer, format=format)
     buffer.seek(0)
     encoded = b64encode(buffer.getvalue()).decode('utf-8')
     return f"data:image/{format.lower()};base64,{encoded}"
 
+def validate_file(file, allowed_ext, max_size, file_type="file"):
+    """Validate file extension and size"""
+    
+    ext = os.path.splitext(file.filename.lower())[1]
+    if ext not in allowed_ext:
+        raise ValueError(f"Invalid {file_type} type. Allowed: {', '.join(allowed_ext)}")
+    
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    
+    if size > max_size:
+        raise ValueError(f"{file_type.capitalize()} too large. Max: {max_size/(1024*1024):.0f}MB")
+
+# API routes
 @app.route('/')
 def home():
     """Render the home page"""
     return render_template('index.html')
 
-@app.route('/api/model-status')
-def model_status():
-    """Endpoint to check model status"""
-    return jsonify({
-        'status': app.config["model_loaded"],
-        'error': app.config["model_error"],
-        'name': app.config["model_name"]
-    })
-
 @app.route('/api/model-reload', methods=['POST'])
 def model_reload():
     """Endpoint to reload the model"""
 
-    # Check if file is in the request
     if 'model_data' not in request.files:
         return jsonify({'error': 'Missing model data in request'}), 400
     
     try:  
         file = request.files['model_data']
+        validate_file(file, {'.keras'}, 500 * 1024 * 1024, "model") # 500 MB
         model_bytes = file.read()
+        model_name = request.form.get('filename')
 
-        app.config["model_name"] = request.form.get('filename')
-        app.config["model_error"] = None
-        app.config["model_loaded"] = False
-        threading.Thread(target=background_model_load, args=(model_bytes,), daemon=True).start()
+        threading.Thread(target=background_model_load, args=(model_bytes, model_name), daemon=True).start()
 
         return jsonify({'status': 'Model data received successfully'}), 200
+    
+    except ValueError as e:
+        logger.error(e, exc_info=True)
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
@@ -129,17 +167,30 @@ def model_reload():
 def predict():
     """Handle image prediction via POST request"""
     try:
-        # Check if file is in the request
         if 'files' not in request.files:
             return jsonify({'error': 'No files uploaded'}), 400
         
+        if app.config["model"] is None:
+            return jsonify({'error': 'Model not available'}), 503
+        
         files = request.files.getlist('files')
+
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({'error': 'No valid files provided'}), 400
     
         # Collect all images into a single batch
         img_arrays = []
 
         for file in files:
+            # Validate each file
+            validate_file(file, {'.jpg', '.jpeg', '.png'}, 10 * 1024 * 1024, "image") # 10 MB
+
             img = Image.open(file).convert('L')
+
+            width, height = img.size
+            if width > 410 or height > 350:
+                return jsonify({'error': f"Image {file.filename} too large: {width}x{height}px. Valid size: 350x410px"}), 400
+            
             img_array = img_to_array(img)
             img_arrays.append(img_array.astype("float32") / 255.0)
         
@@ -169,6 +220,9 @@ def predict():
 
         return jsonify(results)
 
+    except ValueError as e:
+        logger.error(e, exc_info=True)
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500
@@ -195,6 +249,9 @@ def save_to_db():
         data = request.json
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
+        
+        if "pID" not in data:
+            return jsonify({"error": "Missing required field: pID"}), 400
 
         with sqlite3.connect(app.config["db_path"]) as conn:
             cur = conn.cursor()
@@ -214,14 +271,14 @@ def save_to_db():
                     status = excluded.status,
                     annotation = excluded.annotation
             """, (
-                int(data["id"]) if data["id"] else None,
-                data["pID"][:15],
+                int(data.get("id")) if data.get("id") else None,
+                data.get("pID")[:15],
                 datetime.now().strftime("%Y-%m-%d %H:%M"),
-                int(data["predicted_class"]),
-                float(data["prediction"]),
-                data["reviewer"][:50],
-                data["status"] if data["status"] in ["Open", "Reviewed", "Flagged"] else "Open",
-                data["annotation"][:500]
+                int(data.get("predicted_class")),
+                float(data.get("prediction")),
+                data.get("reviewer")[:50],
+                data.get("status") if data.get("status") in ["Open", "Reviewed", "Flagged"] else "Open",
+                data.get("annotation")[:500]
             ))
             conn.commit()
 
@@ -237,12 +294,20 @@ def delete_from_db():
         data = request.json
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
+        
+        if "id" not in data:
+            return jsonify({"error": "Missing required field: id"}), 400
+        
+        try:
+            record_id = int(data.get("id"))
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid ID format"}), 400
 
         with sqlite3.connect(app.config["db_path"]) as conn:
             cur = conn.cursor()
             cur.execute(
                 "DELETE FROM predictions WHERE id = ?",
-                (int(data["id"]),)
+                (record_id,)
             )
             conn.commit()
 
@@ -259,7 +324,7 @@ def log_error():
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
 
-        logger.error(data["error_msg"][:1000])
+        logger.error(data.get("error_msg", "Unknown error")[:1000])
 
         return jsonify({"status": "Error logged"}), 200
     except Exception as e:
@@ -272,6 +337,14 @@ if __name__ == "__main__":
     parser.add_argument("--db", type=str, required=True, help="Path to the database")
     parser.add_argument("--port", type=int, required=False, default=5000, help="Port to run the app on")
     args = parser.parse_args()
+
+    if not os.path.exists(args.model):
+        logger.error(f"Error: Model file not found: {args.model}")
+        os._exit(1)
+    
+    if not os.path.exists(args.db):
+        logger.error(f"Error: Database file not found: {args.db}")
+        os._exit(1)
 
     app.config["db_path"]=args.db
 

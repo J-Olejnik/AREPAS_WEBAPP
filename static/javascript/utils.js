@@ -38,13 +38,16 @@ export const DOMHelpers = (() => {
         showNotification('GradCAM downloaded', 'Success');
     }
 
-    function showLoadingAnimation() {
+    function showLoadingAnimation(show = true) {
         const gradCAMbox = document.getElementById(ELEMENTS.GRADCAM_BOX);
         gradCAMbox.innerHTML = '';
-        const svgElement = `<svg xmlns="http://www.w3.org/2000/svg" id="svgCircle" viewBox="25 25 50 50"><circle r="20" cy="50" cx="50"></circle></svg>`;
-        
-        if (!gradCAMbox.querySelector('#svgCircle')) {
-            gradCAMbox.innerHTML = svgElement;
+
+        if(show) {
+            const svgElement = `<svg xmlns="http://www.w3.org/2000/svg" id="svgCircle" viewBox="25 25 50 50"><circle r="20" cy="50" cx="50"></circle></svg>`;
+            
+            if (!gradCAMbox.querySelector('#svgCircle')) {
+                gradCAMbox.innerHTML = svgElement;
+            }
         }
     }
 
@@ -112,7 +115,12 @@ export const DOMHelpers = (() => {
 
     function typeText(text, multiple = false) {
         const state = AppState.getState();
-        if (state.ui.typingInProgress || state.ui.currentTab !== 'main') return;
+        if (state.ui.currentTab !== 'main') return;
+
+        if (state.ui.typingTimeout) {
+            clearTimeout(state.ui.typingTimeout);
+            AppState.updateUI({ typingTimeout: null });
+        }
 
         const textBox = document.getElementById(ELEMENTS.TEXT_BOX);
         textBox.innerHTML = '';
@@ -127,7 +135,7 @@ export const DOMHelpers = (() => {
                 index++;
 
                 if (index <= text.length) {
-                    setTimeout(animate, CONFIG.TYPING_SPEED);
+                    AppState.updateUI({ typingTimeout: setTimeout(animate, CONFIG.TYPING_SPEED) })
                 } else {
                     AppState.updateUI({ typingInProgress: false });
                 }

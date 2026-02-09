@@ -1,5 +1,5 @@
 import { ELEMENTS, TEMPLATES } from './constants.js';
-import { AppState, APIService, ModelStatusChecker } from './services.js';
+import { AppState, APIService } from './services.js';
 import { DOMHelpers } from './utils.js';
 
 export const ImageHandler = (() => {
@@ -65,88 +65,98 @@ export const ImageHandler = (() => {
         DOMHelpers.showLoadingAnimation();
         DOMHelpers.typeText('Processing...');
 
+        let predictionSuccessful = false;
+        
         try {
             const responseData = await APIService.predict(formData);
             AppState.updateData({ responseData });
-            
+            predictionSuccessful = true;
+        } catch (error) {
+            DOMHelpers.showNotification(error.res, 'Error');
+            DOMHelpers.showLoadingAnimation(false);
+            DOMHelpers.typeText('Please try again');
+            APIService.logError(error);
+        } finally {
             // Check if still on main tab after response and render data accordingly
             const state = AppState.getState();
-            (state.ui.currentTab === 'main' ? displayResults : renderInBackground)(patient, files.length);
-
-        } catch (error) {
-            DOMHelpers.showNotification('Prediction failed', 'Error');
-            APIService.logError(error);
+            (state.ui.currentTab === 'main' ? displayResults : renderInBackground)(predictionSuccessful, patient, files.length);
         }
 
         AppState.updateUI({ predictionInProgress: false});
         DOMHelpers.disableElement(ELEMENTS.CHANGE_MODEL_BTN, false);
     }
 
-    function renderInBackground(patient, fileCount) {
+    function renderInBackground(success = true, patient, fileCount) {
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = AppState.getState().data.mainContent;
         
-        // Must be querySelector since query within a specific object
-        const gradCAMBox = tempContainer.querySelector('#' + ELEMENTS.GRADCAM_BOX);
-        if (gradCAMBox) {
-            gradCAMBox.innerHTML = '';
-            const img = new Image();
-            img.src = patient.gradCAM;
-            Object.assign(img.style, {
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                borderRadius: '10px'
-            });
-            gradCAMBox.style.border = '2px solid #ccc';
-            gradCAMBox.appendChild(img);
+        if (success) {
+            // Must be querySelector since query within a specific object
+            const gradCAMBox = tempContainer.querySelector('#' + ELEMENTS.GRADCAM_BOX);
+            if (gradCAMBox) {
+                gradCAMBox.innerHTML = '';
+                const img = new Image();
+                img.src = patient.gradCAM;
+                Object.assign(img.style, {
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    borderRadius: '10px'
+                });
+                gradCAMBox.style.border = '2px solid #ccc';
+                gradCAMBox.appendChild(img);
+            }
+            
+            const textBox = tempContainer.querySelector('#' + ELEMENTS.TEXT_BOX);
+            if (textBox) {
+                textBox.innerHTML = `
+                    <p><strong>Raw prediction:</strong> ${patient.prediction}</p>
+                    <p><strong>Predicted class:</strong> ${patient.predClass}</p>
+                    <p><strong>Confidence:</strong> ${patient.confidence}</p>
+                `;
+            }
+            
+            const saveBtn = tempContainer.querySelector('#' + ELEMENTS.SAVE_BTN);
+            const downloadBtn = tempContainer.querySelector('#' + ELEMENTS.DOWNLOAD_BTN);
+            const nextBtn = tempContainer.querySelector('#' + ELEMENTS.NEXT_BTN);
+            
+            if (saveBtn) saveBtn.disabled = false;
+            if (downloadBtn) downloadBtn.disabled = false;
+            if (nextBtn && fileCount > 1) nextBtn.disabled = false;
+
+            DOMHelpers.showNotification('Prediction is ready!', 'Success');
         }
-        
-        const textBox = tempContainer.querySelector('#' + ELEMENTS.TEXT_BOX);
-        if (textBox) {
-            textBox.innerHTML = `
-                <p><strong>Raw prediction:</strong> ${patient.prediction}</p>
-                <p><strong>Predicted class:</strong> ${patient.predClass}</p>
-                <p><strong>Confidence:</strong> ${patient.confidence}</p>
-            `;
-        }
-        
-        const saveBtn = tempContainer.querySelector('#' + ELEMENTS.SAVE_BTN);
-        const downloadBtn = tempContainer.querySelector('#' + ELEMENTS.DOWNLOAD_BTN);
-        const nextBtn = tempContainer.querySelector('#' + ELEMENTS.NEXT_BTN);
+
         const fileInput = tempContainer.querySelector('#' + ELEMENTS.FILE_INPUT);
         const dropArea = tempContainer.querySelector('#' + ELEMENTS.DROP_AREA);
-        
-        if (saveBtn) saveBtn.disabled = false;
-        if (downloadBtn) downloadBtn.disabled = false;
-        if (nextBtn && fileCount > 1) nextBtn.disabled = false;
+
         if (fileInput) fileInput.disabled = false;
         if (dropArea) dropArea.dataset.disabled = 'false';
         
         // Save updated HTML back to mainContent
         AppState.updateData({ mainContent: tempContainer.innerHTML });
-
-        DOMHelpers.showNotification('Prediction is ready!', 'Success');
     }
 
-    function displayResults(patient, fileCount) {
-        DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
-        DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, false);
-        DOMHelpers.displayImage(
-            document.getElementById(ELEMENTS.GRADCAM_BOX),
-            patient.gradCAM
-        );
+    function displayResults(success = true, patient, fileCount) {
+        if (success) {
+            DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
+            DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, false);
+            DOMHelpers.displayImage(
+                document.getElementById(ELEMENTS.GRADCAM_BOX),
+                patient.gradCAM
+            );
 
-        if (fileCount > 1) {
-            DOMHelpers.disableElement(ELEMENTS.NEXT_BTN, false);
+            if (fileCount > 1) {
+                DOMHelpers.disableElement(ELEMENTS.NEXT_BTN, false);
+            }
+
+            DOMHelpers.typeText(
+                `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
+                <p><strong>Predicted class:</strong> ${patient.predClass}</p>
+                <p><strong>Confidence:</strong> ${patient.confidence}</p>`,
+                true
+            );
         }
-
-        DOMHelpers.typeText(
-            `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
-            <p><strong>Predicted class:</strong> ${patient.predClass}</p>
-            <p><strong>Confidence:</strong> ${patient.confidence}</p>`,
-            true
-        );
 
         DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
         DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
@@ -277,6 +287,11 @@ export const PopupHandler = (() => {
             const newModel = e.target.files[0];
             if (!newModel) return;
 
+            if (!newModel.name.toLowerCase().endsWith('.keras')) {
+                DOMHelpers.showNotification('Wrong model file type', 'Error');
+                return;
+            }
+
             DOMHelpers.checkExisting(ELEMENTS.SETTINGS_POPUP, true);
             DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP, true);
 
@@ -291,7 +306,6 @@ export const PopupHandler = (() => {
 
             try {
                 await APIService.reloadModel(formData);
-                ModelStatusChecker.check();
                 
             } catch (error) {
                 DOMHelpers.showNotification('Model reload failed', 'Error');

@@ -1,15 +1,12 @@
 import { ELEMENTS } from './constants.js';
-import { AppState, ModelStatusChecker } from './services.js';
+import { AppState, SocketService } from './services.js';
 import { TemplateHandler } from './handlers.js';
 import { EventManager } from './events.js';
 
 const App = (() => {
     function init() {
         // Initialize the websocket connection
-        const socket = io({
-            transports: ['websocket'],
-            upgrade: false
-        });
+        SocketService.init();
 
         // Save initial main content
         AppState.updateData({ 
@@ -21,7 +18,6 @@ const App = (() => {
 
         // Load templates and check model status
         TemplateHandler.loadTemplates();
-        ModelStatusChecker.check();
     }
 
     return { init };

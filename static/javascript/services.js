@@ -1,4 +1,4 @@
-import { API_ENDPOINTS, CONFIG, ELEMENTS } from './constants.js';
+import { API_ENDPOINTS, ELEMENTS } from './constants.js';
 
 export const AppState = (() => {
     const state = {
@@ -8,17 +8,14 @@ export const AppState = (() => {
             imageData: null,
             responseData: null,
             mainContent: null,
-            modelName: null
+            modelName: 'Undefined'
         },
         ui: {
             typingInProgress: false,
             predictionInProgress: false,
             currentTab: 'main',
-            activePopup: null
-        },
-        model: {
-            lastStatus: null,
-            statusChecking: false
+            activePopup: null,
+            typingTimeout: null
         }
     };
 
@@ -84,14 +81,13 @@ export const APIService = (() => {
             method: 'POST',
             body: formData
         });
-        if (!res.ok) throw new Error(`Prediction failed: ${res.status}`);
-        return await res.json();
-    }
-
-    async function checkModelStatus() {
-        const res = await fetch(API_ENDPOINTS.MODEL_STATUS);
-        if (!res.ok) throw new Error(`Status check failed: ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        if (!res.ok) {
+            const error = new Error(`Prediction failed: ${res.status} | ${data.error}`);
+            error.res = data.error;
+            throw error;
+        }
+        return data;
     }
 
     async function reloadModel(formData) {
@@ -99,14 +95,24 @@ export const APIService = (() => {
             method: 'POST',
             body: formData
         });
-        if (!res.ok) throw new Error(`Model reload failed: ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        if (!res.ok) {
+            const error = new Error(`Model reload failed: ${res.status} | ${data.error}`);
+            error.res = data.error;
+            throw error;
+        }
+        return data;
     }
 
     async function loadDatabase() {
         const res = await fetch(API_ENDPOINTS.LOAD_DATABASE);
-        if (!res.ok) throw new Error(`Database load failed: ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        if (!res.ok) {
+            const error = new Error(`Database load failed: ${res.status} | ${data.error}`);
+            error.res = data.error;
+            throw error;
+        }
+        return data;
     }
 
     async function saveToDatabase(payload) {
@@ -115,8 +121,13 @@ export const APIService = (() => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        if (!res.ok) throw new Error(`Save failed: ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        if (!res.ok) {
+            const error = new Error(`Save failed: ${res.status} | ${data.error}`);
+            error.res = data.error;
+            throw error;
+        }
+        return data;
     }
 
     async function deleteFromDatabase(id) {
@@ -125,8 +136,13 @@ export const APIService = (() => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id })
         });
-        if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        if (!res.ok) {
+            const error = new Error(`Delete failed: ${res.status} | ${data.error}`);
+            error.res = data.error;
+            throw error;
+        }
+        return data;
     }
 
     async function logError(error) {
@@ -135,13 +151,17 @@ export const APIService = (() => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({error_msg:`${error.stack}`})
         });
-        if (!res.ok) throw new Error(`Logging failed: ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        if (!res.ok) {
+            const error = new Error(`Logging failed: ${res.status} | ${data.error}`);
+            error.res = data.error;
+            throw error;
+        }
+        return data;
     }
 
     return {
         predict,
-        checkModelStatus,
         reloadModel,
         loadDatabase,
         saveToDatabase,
@@ -150,45 +170,30 @@ export const APIService = (() => {
     };
 })();
 
-export const ModelStatusChecker = (() => {
-    async function check() {
-        const state = AppState.getState();
-        if (state.model.statusChecking) return;
+export const SocketService = (() => {
+    let socket = null;
 
-        AppState.updateModel({ statusChecking: true });
-        
-        try {
-            const data = await APIService.checkModelStatus();
-            AppState.updateData({ modelName: data.name });
-            
-            if (data.status !== state.model.lastStatus) {
-                // Import DOMHelpers dynamically to avoid circular dependency
-                const { DOMHelpers } = await import('./utils.js');
+    function init() {
+        socket = io({
+            transports: ['websocket'],
+            upgrade: false
+        });
 
-                if (data.status) {
-                    DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
-                    DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
-                    DOMHelpers.showNotification('Model is ready!', 'Success');
-                    AppState.updateModel({ lastStatus: true });
-                } else {
-                    const message = data.error ? 'Model reloading process failed' : 'Model is loading...';
-                    const type = data.error ? 'Error' : 'Info';
-                    DOMHelpers.showNotification(message, type);
-                    AppState.updateModel({ lastStatus: data.error ? null : false });
-                }
-            }
-
-            if (!data.status && !data.error) {
-                setTimeout(check, CONFIG.MODEL_STATUS_CHECK_INTERVAL);
-            }
-        } catch (error) {
+        // Listen for backend notifications
+        socket.on('notification', async (data) => {
             const { DOMHelpers } = await import('./utils.js');
-            DOMHelpers.showNotification('Unable to check model status', 'Error');
-            APIService.logError(error);
-        } finally {
-            AppState.updateModel({ statusChecking: false });
-        }
+
+            if (data.message) DOMHelpers.showNotification(data.message, data.type);
+
+            if (data.status) {
+                if (data.name !== undefined) AppState.updateData({ modelName: data.name });
+                DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
+                DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
+            }
+        });
+
+        return socket;
     }
 
-    return { check };
+    return { init };
 })();

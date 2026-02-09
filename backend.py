@@ -24,7 +24,6 @@ app.config["shutdown_timer"] = None
 app.config["db_path"] = None
 app.config["model"] = None
 app.config["model_name"] = None
-app.config["cached_predictions"] = {}
 
 # Socket setup
 @socketio.on("connect")

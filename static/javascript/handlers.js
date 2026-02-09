@@ -316,13 +316,21 @@ export const PopupHandler = (() => {
 
     async function saveData(id = null) {
         try {
+            const reviewerEl = document.querySelector('[data-field="reviewer"]');
+
+            if (!reviewerEl.value.trim()) {
+                reviewerEl.classList.add('missing');
+                DOMHelpers.showNotification('Please enter reviewer name', 'Info');
+                return;
+            }
+
             const patient = AppState.getPatient();
             const payload = {
                 id: id,
                 pID: id ? '' : patient.pID,
                 predicted_class: id ? 0 : patient.predClass,
                 prediction: id ? 0 : patient.prediction,
-                reviewer: document.querySelector('[data-field="reviewer"]').textContent,
+                reviewer: reviewerEl.value,
                 status: document.querySelector('[data-field="status"]').value,
                 annotation: document.querySelector('[data-field="annotation"]').value
             };

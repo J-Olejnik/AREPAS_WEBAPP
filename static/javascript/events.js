@@ -100,7 +100,7 @@ export const EventManager = (() => {
         });
 
         main.addEventListener('pointermove', e => {
-            if(!state.ui.activePopup) return;
+            if (!state.ui.activePopup) return;
 
             const mainRect = main.getBoundingClientRect();
             const popupRect = state.ui.activePopup.getBoundingClientRect();
@@ -121,11 +121,23 @@ export const EventManager = (() => {
         });
 
         main.addEventListener('pointerup', e => {
-            if(!state.ui.activePopup) return;
+            if (!state.ui.activePopup) return;
             
             state.ui.activePopup.classList.remove('dragging');
             AppState.updateUI({ activePopup: null});
         });
+    }
+
+    function attachKeyboardListeners() {
+        document.addEventListener('keydown', e => {
+            const popup = document.getElementById(ELEMENTS.DATA_POPUP);
+            
+            if (!popup || e.key !== 'Enter') return;
+            
+            e.preventDefault();
+
+            popup.querySelector('#' + ELEMENTS.POPUP_SAVE_BTN).click();
+        });   
     }
 
     function attachMenuListeners() {
@@ -191,6 +203,7 @@ export const EventManager = (() => {
         attachInputListeners();
         attachClickListeners();
         attachDragListeners();
+        attachKeyboardListeners();
         attachMenuListeners();
     }
 
@@ -199,6 +212,7 @@ export const EventManager = (() => {
         attachInputListeners,
         attachClickListeners,
         attachDragListeners,
+        attachKeyboardListeners,
         attachMenuListeners
     };
 })();

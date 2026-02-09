@@ -92,6 +92,19 @@
   font-size: 15px;
 }
 
+#reviewer {
+  resize: none;
+  overflow: hidden;
+  height: 20px;
+  width: 70px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+#reviewer.missing {
+  border-color: red;
+}
+
 #annotation {
   min-width: 300px;  
   min-height: 120px;

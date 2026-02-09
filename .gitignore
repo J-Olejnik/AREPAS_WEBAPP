@@ -1,6 +1,9 @@
 # Ignore cached files
 __pycache__/
 
+# Ignore logs
+logs/
+
 # Ignore model weights
 static/assets/*.keras
 

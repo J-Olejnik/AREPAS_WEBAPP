@@ -10,5 +10,6 @@ Tensorflow 2.18.1
 tf-explain 0.3.1 (modified)  
 Flask 2.2.5  
 Flask-SocketIO 5.6.0  
-numpy 2.3.5  
+numpy 2.0.0  
 Pillow 12.0.0  
+opencv-python 4.13.0  

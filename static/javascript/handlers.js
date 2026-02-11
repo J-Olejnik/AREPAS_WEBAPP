@@ -17,19 +17,15 @@ export const ImageHandler = (() => {
         DOMHelpers.disableElement(ELEMENTS.CHANGE_MODEL_BTN, true);
 
         const formData = new FormData();
-        const newImageData = [];
 
         files.forEach((file, index) => {
             formData.append('files', file);
 
             const reader = new FileReader();
             reader.onload = () => {
-                newImageData[index] = reader.result;
+                file.image = reader.result;
                 if (index === 0) {
-                    DOMHelpers.displayImage(
-                        document.getElementById(ELEMENTS.DROP_AREA),
-                        newImageData[0]
-                    );
+                    DOMHelpers.displayImage(document.getElementById(ELEMENTS.DROP_AREA), reader.result);
                 }
             };
 
@@ -40,8 +36,6 @@ export const ImageHandler = (() => {
 
             reader.readAsDataURL(file);
         });
-
-        AppState.updateData({ imageData: newImageData });
         
         // Update UI
         const patient = AppState.getPatient();
@@ -66,11 +60,15 @@ export const ImageHandler = (() => {
         DOMHelpers.typeText('Processing...');
 
         let predictionSuccessful = false;
-        
+        const state = AppState.getState();
+
         try {
             const responseData = await APIService.predict(formData);
             AppState.updateData({ responseData });
             predictionSuccessful = true;
+
+            if (responseData.invalid.length) AppState.updateData({ inputData: state.data.inputData.filter((_, i) => !responseData.invalid.includes(i)) });
+
         } catch (error) {
             DOMHelpers.showNotification(error.res, 'Error');
             DOMHelpers.showLoadingAnimation(false);
@@ -78,8 +76,7 @@ export const ImageHandler = (() => {
             APIService.logError(error);
         } finally {
             // Check if still on main tab after response and render data accordingly
-            const state = AppState.getState();
-            (state.ui.currentTab === 'main' ? displayResults : renderInBackground)(predictionSuccessful, patient, files.length);
+            (state.ui.currentTab === 'main' ? displayResults : renderInBackground)(predictionSuccessful, patient, state.data.inputData.length);
         }
 
         AppState.updateUI({ predictionInProgress: false});
@@ -89,23 +86,14 @@ export const ImageHandler = (() => {
     function renderInBackground(success = true, patient, fileCount) {
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = AppState.getState().data.mainContent;
+
+        const dropArea = tempContainer.querySelector('#' + ELEMENTS.DROP_AREA);
+        DOMHelpers.displayImage(dropArea, patient.image);
         
         if (success) {
             // Must be querySelector since query within a specific object
             const gradCAMBox = tempContainer.querySelector('#' + ELEMENTS.GRADCAM_BOX);
-            if (gradCAMBox) {
-                gradCAMBox.innerHTML = '';
-                const img = new Image();
-                img.src = patient.gradCAM;
-                Object.assign(img.style, {
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    borderRadius: '10px'
-                });
-                gradCAMBox.style.border = '2px solid #ccc';
-                gradCAMBox.appendChild(img);
-            }
+            DOMHelpers.displayImage(gradCAMBox, patient.gradCAM);
             
             const textBox = tempContainer.querySelector('#' + ELEMENTS.TEXT_BOX);
             if (textBox) {
@@ -128,7 +116,6 @@ export const ImageHandler = (() => {
         }
 
         const fileInput = tempContainer.querySelector('#' + ELEMENTS.FILE_INPUT);
-        const dropArea = tempContainer.querySelector('#' + ELEMENTS.DROP_AREA);
 
         if (fileInput) fileInput.disabled = false;
         if (dropArea) dropArea.dataset.disabled = 'false';
@@ -138,6 +125,8 @@ export const ImageHandler = (() => {
     }
 
     function displayResults(success = true, patient, fileCount) {
+        DOMHelpers.displayImage(document.getElementById(ELEMENTS.DROP_AREA), patient.image);
+
         if (success) {
             DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
             DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, false);

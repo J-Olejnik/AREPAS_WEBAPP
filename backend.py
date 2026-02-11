@@ -83,15 +83,15 @@ def background_model_load(source, name = None):
                 tmp.write(source)
                 tmp_path = tmp.name
             new_model = load_model(tmp_path) # tmp var in case loading fails
+            app.config["model"] = new_model
             app.config["model_name"] = name
             os.remove(tmp_path)
         elif isinstance(source, str) and os.path.exists(source):
             new_model = load_model(source)
+            app.config["model"] = new_model
             app.config["model_name"] = os.path.basename(source)
         else:
             raise ValueError("Invalid model source")
-        
-        app.config["model"] = new_model
 
         socketio.emit('notification', {
             'type': 'Success', 
@@ -177,21 +177,35 @@ def predict():
         if not files or all(f.filename == '' for f in files):
             return jsonify({'error': 'No valid files provided'}), 400
     
-        # Collect all images into a single batch
+        # Collect all images into a single batch and store ids of the invalid images to update frontend on display
         img_arrays = []
+        invalid_ids = []
 
-        for file in files:
-            # Validate each file
-            validate_file(file, {'.jpg', '.jpeg', '.png'}, 10 * 1024 * 1024, "image") # 10 MB
+        for id, file in enumerate(files):
+            try:
+                # Validate each file
+                validate_file(file, {'.jpg', '.jpeg', '.png'}, 10 * 1024 * 1024, "image") # 10 MB
 
-            img = Image.open(file).convert('L')
+                img = Image.open(file).convert('L')
 
-            width, height = img.size
-            if width > 410 or height > 350:
-                return jsonify({'error': f"Image {file.filename} too large: {width}x{height}px. Valid size: 350x410px"}), 400
-            
-            img_array = img_to_array(img)
-            img_arrays.append(img_array.astype("float32") / 255.0)
+                width, height = img.size
+                if width > 410 or height > 350:
+                    raise ValueError(f"Image {file.filename} too large: {width}x{height}px. Valid size: 350x410px")
+                
+                img_array = img_to_array(img)
+                img_arrays.append(img_array.astype("float32") / 255.0)
+                
+            except ValueError as e:
+                invalid_ids.append(id)
+                logger.error(e, exc_info=True)
+                socketio.emit('notification', {
+                    'type': 'Error', 
+                    'message': str(e)
+                })
+
+        # All images failed
+        if not img_arrays:
+            return jsonify({'error': 'No valid images available'}), 400
         
         # Stack images into a single batch tensor
         batch_images = np.stack(img_arrays)
@@ -217,11 +231,8 @@ def predict():
                 }
             })
 
-        return jsonify(results)
+        return jsonify({'results': results, 'invalid': invalid_ids})
 
-    except ValueError as e:
-        logger.error(e, exc_info=True)
-        return jsonify({'error': str(e)}), 400
     except Exception as e:
         logger.error(e, exc_info=True)
         return jsonify({'error': str(e)}), 500

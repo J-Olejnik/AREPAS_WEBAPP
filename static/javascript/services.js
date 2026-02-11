@@ -5,7 +5,6 @@ export const AppState = (() => {
         data: {
             currentId: 0,
             inputData: null,
-            imageData: null,
             responseData: null,
             mainContent: null,
             modelName: 'Undefined'
@@ -37,30 +36,29 @@ export const AppState = (() => {
 
     function resetImageData() {
         state.data.currentId = 0;
-        state.data.imageData = null;
         state.data.responseData = null;
     }
 
     function getPatient() {
         return {
             get image() {
-                return state.data.imageData[state.data.currentId];
+                return state.data.inputData[state.data.currentId].image;
             },
             get pID() {
                 return state.data.inputData[state.data.currentId].name.substring(0, state.data.inputData[state.data.currentId].name.lastIndexOf("."));
             },
             get gradCAM() {
-                return state.data.responseData[state.data.currentId].images.gradcam;
+                return state.data.responseData.results[state.data.currentId].images.gradcam;
             },
             get prediction() {
-                return state.data.responseData[state.data.currentId].predictions[0];
+                return state.data.responseData.results[state.data.currentId].predictions[0];
             },
             get confidence() {
                 const conf = this.predClass === 1 ? this.prediction : (1 - this.prediction);
                 return (conf * 100).toFixed(1) + "%";
             },
             get predClass() {
-                return state.data.responseData[state.data.currentId].predictions[1];
+                return state.data.responseData.results[state.data.currentId].predictions[1];
             }
         };
     }

@@ -27,6 +27,7 @@ export const EventManager = (() => {
 
         const handleFileSource = fileList => {
             const files = [...fileList].filter(f => f.type.startsWith('image/'));
+            files.forEach(f => f.image = null);
             if (!files.length) {
                 DOMHelpers.showNotification('Wrong image file type', 'Error');
                 return;

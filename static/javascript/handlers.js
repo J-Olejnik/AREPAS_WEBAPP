@@ -95,9 +95,9 @@ export const ImageHandler = (() => {
             const gradCAMBox = tempContainer.querySelector('#' + ELEMENTS.GRADCAM_BOX);
             DOMHelpers.displayImage(gradCAMBox, patient.gradCAM);
             
-            const textBox = tempContainer.querySelector('#' + ELEMENTS.TEXT_BOX);
-            if (textBox) {
-                textBox.innerHTML = `
+            const predBox = tempContainer.querySelector('#' + ELEMENTS.PRED_BOX);
+            if (predBox) {
+                predBox.innerHTML = `
                     <p><strong>Raw prediction:</strong> ${patient.prediction}</p>
                     <p><strong>Predicted class:</strong> ${patient.predClass}</p>
                     <p><strong>Confidence:</strong> ${patient.confidence}</p>
@@ -186,7 +186,7 @@ export const NavigationHandler = (() => {
         DOMHelpers.displayImage(document.getElementById(ELEMENTS.DROP_AREA), patient.image);
         DOMHelpers.displayImage(document.getElementById(ELEMENTS.GRADCAM_BOX), patient.gradCAM);
         
-        document.getElementById(ELEMENTS.TEXT_BOX).innerHTML = `
+        document.getElementById(ELEMENTS.PRED_BOX).innerHTML = `
             <p><strong>Raw prediction:</strong> ${patient.prediction}</p>
             <p><strong>Predicted class:</strong> ${patient.predClass}</p>
             <p><strong>Confidence:</strong> ${patient.confidence}</p>
@@ -419,7 +419,7 @@ export const TemplateHandler = (() => {
 
             if (state.ui.typingInProgress) {
                 AppState.updateUI({ typingInProgress: false });
-                document.getElementById(ELEMENTS.TEXT_BOX).innerHTML = document.getElementById(ELEMENTS.TEXT_BOX).dataset.fullText;
+                document.getElementById(ELEMENTS.PRED_BOX).innerHTML = document.getElementById(ELEMENTS.PRED_BOX).dataset.fullText;
             }
 
             PopupHandler.closeDataPopup();

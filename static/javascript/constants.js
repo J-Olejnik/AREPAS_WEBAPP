@@ -3,7 +3,7 @@ export const ELEMENTS = {
     DROP_AREA: 'dropArea',
     FILE_INPUT: 'fileInput',
     MODEL_FILE_INPUT: 'modelFileInput',
-    TEXT_BOX: 'textBox',
+    PRED_BOX: 'predictionBox',
     DATA_CONTAINER: 'dataContainer',
     BTN_CONTAINER: 'btnContainer',
     INN_IMG_CONTAINER: 'innImgContainer',

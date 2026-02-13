@@ -4,8 +4,5 @@ __pycache__/
 # Ignore logs
 logs/
 
-# Ignore model weights
-static/assets/*.keras
-
-# Ignore db files
-static/assets/*.db
+# Ignore assets (.db and .keras files)
+assets/

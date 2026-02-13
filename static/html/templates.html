@@ -1,6 +1,39 @@
 <!-- Main page templates -->
 <template id="instructions-template">
-    <div id="textBox"><p><strong>*Place for Instructions*</strong></p></div>
+    <div id="instructionsBox" class="textBox">
+        <p class="larger"><strong>Image Classification</strong></p>
+        <ul>
+            <li>Upload images via drag-and-drop or click to browse (supports multiple images)</li>
+            <li>View prediction results with confidence scores</li>
+            <li>Generate and review GradCAM visualizations for model explainability</li>
+            <li>Navigate between multiple predictions using Prev/Next buttons</li>
+            <li>Download GradCAM images for offline review</li>
+        </ul>
+        <p>*Invalid images will be automatically detected and discarded from the display*</p>
+        
+        <p class="larger"><strong>Database Management</strong></p>
+        <ul>
+            <li>Save predictions to the database with reviewer notes</li>
+            <li>Mark predictions as Open, Reviewed, or Flagged for quality control</li>
+            <li>Add annotations for difficult cases or non-discriminative GradCAM results</li>
+            <li>View all saved predictions via the Database tab</li>
+            <li>Edit or delete existing database records</li>
+        </ul>
+        
+        <p class="larger"><strong>Model Management</strong></p>
+        <ul>
+            <li>View currently loaded model via Settings menu</li>
+            <li>Replace model by uploading a new .keras file</li>
+            <li>Model reloads automatically in the background</li>
+        </ul>
+        
+        <p class="larger"><strong>Input Constraints</strong></p>
+        <ul>
+            <li><strong>Images:</strong> Preprocessed <strong>.jpg, .jpeg,</strong> or <strong>.png</strong> formats only | Valid dimensions: <strong>350x410 px</strong> | Max 10 MB per file</li>
+            <li><strong>Models:</strong> Compressed <strong>.keras</strong> format only | Max 500 MB</li>
+            <li><strong>Database fields:</strong> Reviewer (max 50 chars) | Annotation (max 500 chars)</li>
+        </ul>
+    </div>
 </template>
 
 <template id="database-template">
@@ -23,7 +56,7 @@
 </template>
 
 <template id="about-template">
-    <div id="textBox"><p><strong>*Place for Project description if needed*</strong></p></div>
+    <div id="descriptionBox" class="textBox"><p><strong>*Place for project description if needed*</strong></p></div>
 </template>
 
 <template id="imgBtn-template">

@@ -68,7 +68,7 @@ body {
   align-items: center;
   justify-content: space-between;
   width: 90%;
-  margin-top: 5px;
+  margin: 5px 0;
   position: relative;
 }
 
@@ -86,15 +86,9 @@ h1 {
 }
 
 .logoClass {
-  height: clamp(1.5em, 5vw, 4.5em);
+  height: 70px; 
+  width: 130px;
   object-fit: contain;
-}
-#spacer {
-  visibility: hidden; 
-}
-
-#logo {
-  margin-left: auto;
 }
 
 #dataContainer {
@@ -179,13 +173,31 @@ h1 {
     justify-content: center;
 }
 
-#textBox {
+.textBox {
     position: relative; 
     width: 95%;
-    height: 70px;
-
-    /* Text inside */
     padding: 0 20px;
+}
+
+#predictionBox {
+    height: 70px;
+    font-size: 1.5rem;
+}
+
+#instructionsBox {
+    font-size: 1.1rem;
+}
+
+#instructionsBox p.larger {
+    font-size: 1.3rem;
+    margin: 15px 0 0 0;
+}
+
+#instructionsBox ul {
+    margin-top: 10px;
+}
+
+#descriptionBox {
     font-size: 1.5rem;
 }
 

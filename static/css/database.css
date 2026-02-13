@@ -54,4 +54,5 @@
 
 .db-table tbody tr:hover {
   background: #fafafa;
+  cursor: pointer;
 }

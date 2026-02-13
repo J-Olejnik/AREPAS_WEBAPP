@@ -122,16 +122,16 @@ export const DOMHelpers = (() => {
             AppState.updateUI({ typingTimeout: null });
         }
 
-        const textBox = document.getElementById(ELEMENTS.TEXT_BOX);
-        textBox.innerHTML = '';
-        textBox.dataset.fullText = multiple ? text : `<p>${text}</p>`;
+        const predBox = document.getElementById(ELEMENTS.PRED_BOX);
+        predBox.innerHTML = '';
+        predBox.dataset.fullText = multiple ? text : `<p>${text}</p>`;
         
         let index = 0;
         AppState.updateUI({ typingInProgress: true });
 
         function animate() {
             if (index <= text.length && state.ui.typingInProgress) {
-                textBox.innerHTML = multiple ? text.slice(0, index) : `<p>${text.slice(0, index)}</p>`;
+                predBox.innerHTML = multiple ? text.slice(0, index) : `<p>${text.slice(0, index)}</p>`;
                 index++;
 
                 if (index <= text.length) {

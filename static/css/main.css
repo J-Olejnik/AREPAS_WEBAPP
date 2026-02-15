@@ -87,8 +87,14 @@ h1 {
 
 .logoClass {
   height: 70px; 
-  width: 130px;
+  width: 140px;
   object-fit: contain;
+  box-sizing: border-box;
+}
+
+.logoClass:first-of-type {
+  padding: 0 0 0 20px;
+  object-position: left center;
 }
 
 #dataContainer {

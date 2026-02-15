@@ -7,7 +7,8 @@ export const AppState = (() => {
             inputData: null,
             responseData: null,
             mainContent: null,
-            modelName: 'Undefined'
+            modelName: 'Undefined',
+            modelLoaded: false
         },
         ui: {
             typingInProgress: false,
@@ -183,10 +184,22 @@ export const SocketService = (() => {
 
             if (data.message) DOMHelpers.showNotification(data.message, data.type);
 
-            if (data.status) {
-                if (data.name !== undefined) AppState.updateData({ modelName: data.name });
-                DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
-                DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
+            if ("status" in data) {
+                AppState.updateData({ modelLoaded: data.status });
+                
+                if (data.status) {
+                    if (data.name !== undefined) {
+                        AppState.updateData({ modelName: data.name });
+
+                        const popup = document.getElementById(ELEMENTS.SETTINGS_POPUP);
+
+                        if (popup) {
+                            popup.querySelector('[data-field]').textContent = data.name;
+                        }
+                    }
+                    DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
+                    DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
+                }
             }
         });
 

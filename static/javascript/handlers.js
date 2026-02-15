@@ -130,17 +130,14 @@ export const ImageHandler = (() => {
         if (success) {
             DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
             DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, false);
-            DOMHelpers.displayImage(
-                document.getElementById(ELEMENTS.GRADCAM_BOX),
-                patient.gradCAM
-            );
+            DOMHelpers.displayImage(document.getElementById(ELEMENTS.GRADCAM_BOX), patient.gradCAM);
 
             if (fileCount > 1) {
                 DOMHelpers.disableElement(ELEMENTS.NEXT_BTN, false);
             }
 
             DOMHelpers.typeText(
-                `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
+                () => `<p><strong>Raw prediction:</strong> ${patient.prediction}</p>
                 <p><strong>Predicted class:</strong> ${patient.predClass}</p>
                 <p><strong>Confidence:</strong> ${patient.confidence}</p>`,
                 true
@@ -255,8 +252,13 @@ export const PopupHandler = (() => {
 
     function closeDataPopup() {
         if (DOMHelpers.checkExisting(ELEMENTS.DATA_POPUP, true)) {
-            DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
-            DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
+            const state = AppState.getState();
+
+            if (state.data.modelLoaded) {
+                DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, false);
+                DOMHelpers.disableElement(ELEMENTS.DROP_AREA, false);
+            }
+
             DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
             DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, false);
         }
@@ -286,7 +288,10 @@ export const PopupHandler = (() => {
 
             DOMHelpers.disableElement(ELEMENTS.FILE_INPUT, true);
             DOMHelpers.disableElement(ELEMENTS.DROP_AREA, true);
-            DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, true);
+
+            DOMHelpers.disableElement(ELEMENTS.SAVE_BTN, false);
+            DOMHelpers.disableElement(ELEMENTS.DOWNLOAD_BTN, false);
+            
             DOMHelpers.showNotification('Uploading new weights...', 'Info');
 
             const formData = new FormData();

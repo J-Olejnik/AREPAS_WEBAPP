@@ -113,7 +113,7 @@ export const DOMHelpers = (() => {
         document.getElementById(ELEMENTS.MAIN).appendChild(template);
     }
 
-    function typeText(text, multiple = false) {
+    function typeText(input, multiple = false) {
         const state = AppState.getState();
         if (state.ui.currentTab !== 'main') return;
 
@@ -124,17 +124,20 @@ export const DOMHelpers = (() => {
 
         const predBox = document.getElementById(ELEMENTS.PRED_BOX);
         predBox.innerHTML = '';
+
+        let text = typeof input === 'function' ? input() : input;
         predBox.dataset.fullText = multiple ? text : `<p>${text}</p>`;
         
         let index = 0;
         AppState.updateUI({ typingInProgress: true });
 
         function animate() {
-            if (index <= text.length && state.ui.typingInProgress) {
+            if (state.ui.typingInProgress) {
+                if (typeof input === 'function') text = input();
                 predBox.innerHTML = multiple ? text.slice(0, index) : `<p>${text.slice(0, index)}</p>`;
-                index++;
 
                 if (index <= text.length) {
+                    index++;
                     AppState.updateUI({ typingTimeout: setTimeout(animate, CONFIG.TYPING_SPEED) })
                 } else {
                     AppState.updateUI({ typingInProgress: false });
